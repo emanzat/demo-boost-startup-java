@@ -165,8 +165,6 @@ jobs:
             -Dformats=SARIF,HTML \
             -DprettyPrint=true \
             -DsuppressionFiles=.owasp-suppressions.xml
-        continue-on-error: true
-        timeout-minutes: 10
 
       - name: Upload OWASP Dependency-Check SARIF
         uses: github/codeql-action/upload-sarif@v4
