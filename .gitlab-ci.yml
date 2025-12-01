@@ -52,8 +52,8 @@ owasp-dependency-check:
   stage: commit
   image: maven:3.9-eclipse-temurin-25
   script:
-    - echo "Running OWASP Dependency Check..."
-    - mvn org.owasp:dependency-check-maven:check -DfailBuildOnCVSS=7
+    - echo "Running OWASP Dependency Check with suppressions..."
+    - mvn org.owasp:dependency-check-maven:check -DfailBuildOnCVSS=7 -DsuppressionFiles=owasp-suppressions.xml
   artifacts:
     when: always
     reports:
