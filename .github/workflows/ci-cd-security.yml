@@ -157,21 +157,7 @@ jobs:
       # OWASP Dependency Check via Maven Plugin (optimisé)
       - name: Run OWASP Dependency-Check
         run: |
-          mvn org.owasp:dependency-check-maven:11.1.1:check \
-            -DfailBuildOnCVSS=7 \
-            -DskipSystemScope=true \
-            -DskipTestScope=true \
-            -DretireJsAnalyzerEnabled=false \
-            -DnodeAnalyzerEnabled=false \
-            -DassemblyAnalyzerEnabled=false \
-            -DnugetconfAnalyzerEnabled=false \
-            -DnuspecAnalyzerEnabled=false \
-            -DossindexAnalyzerEnabled=false \
-            -Dformats=SARIF,HTML \
-            -DprettyPrint=true \
-            -DsuppressionFiles=.owasp-suppressions.xml \
-            -Ddata.directory=${{ runner.temp }}/dependency-check-data \
-            -DautoUpdate=false
+          mvn org.owasp:dependency-check-maven:check
 
       - name: Upload OWASP Dependency-Check SARIF
         uses: github/codeql-action/upload-sarif@v4
