@@ -9,6 +9,9 @@ variables:
   DOCKER_IMAGE: "$CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA"
   DOCKER_IMAGE_LATEST: "$CI_REGISTRY_IMAGE:latest"
   DEPLOY_SERVER: "135.125.223.14"
+  # Security scanning variables
+  DS_JAVA_VERSION: "25"
+  SAST_JAVA_VERSION: "25"
 
 cache:
   paths:
@@ -39,10 +42,6 @@ include:
 # IaC Scanning - automatically included via template
 
 # Dependency Scanning - automatically included via template
-dependency_scanning:
-  stage: commit
-  variables:
-    DS_JAVA_VERSION: "25"
 
 # OWASP Dependency Check
 owasp-dependency-check:
