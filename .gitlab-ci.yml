@@ -1,7 +1,17 @@
+# Include all GitLab Security templates
+include:
+  - template: Security/SAST.gitlab-ci.yml
+  - template: Security/Secret-Detection.gitlab-ci.yml
+  - template: Security/SAST-IaC.gitlab-ci.yml
+  - template: Security/Dependency-Scanning.gitlab-ci.yml
+  - template: Security/Container-Scanning.gitlab-ci.yml
+  - template: Security/DAST.gitlab-ci.yml
+
 stages:
   - commit
   - build
   - test
+  - dast
   - deploy
 
 variables:
@@ -22,20 +32,14 @@ cache:
 # COMMIT STAGE - Security Scans
 # ============================================
 
-# SAST - Static Application Security Testing
-sast:
+# SAST - Static Application Security Testing (Custom build verification)
+sast-build:
   stage: commit
   image: maven:3.9-eclipse-temurin-25
   script:
     - mvn clean compile
-    - echo "SAST scan completed"
+    - echo "SAST build verification completed"
   allow_failure: false
-
-include:
-  - template: Security/SAST.gitlab-ci.yml
-  - template: Security/Secret-Detection.gitlab-ci.yml
-  - template: Security/IaC-Scanning.gitlab-ci.yml
-  - template: Security/Dependency-Scanning.gitlab-ci.yml
 
 # Secret Detection - automatically included via template
 
@@ -134,22 +138,18 @@ build-docker-image:
     - merge_requests
     - tags
 
-# Container Scanning
-container_scanning:
+# Container Scanning (Custom with Trivy)
+container_scanning_custom:
   stage: build
   image: docker:27
   services:
     - docker:27-dind
   variables:
     DOCKER_IMAGE: $DOCKER_IMAGE
-    DOCKER_USER: $CI_REGISTRY_USER
-    DOCKER_PASSWORD: $CI_REGISTRY_PASSWORD
-    CI_APPLICATION_REPOSITORY: $CI_REGISTRY_IMAGE
-    CI_APPLICATION_TAG: $CI_COMMIT_SHORT_SHA
   before_script:
     - docker load -i image.tar
   script:
-    - echo "Running Container Security Scan..."
+    - echo "Running Container Security Scan with Trivy..."
     - |
       docker run --rm \
         -v /var/run/docker.sock:/var/run/docker.sock \
@@ -161,17 +161,18 @@ container_scanning:
         $DOCKER_IMAGE
   artifacts:
     when: always
-    reports:
-      container_scanning: container-scan-report.json
     paths:
       - container-scan-report.json
     expire_in: 1 week
   dependencies:
     - build-docker-image
   allow_failure: false
+  only:
+    - main
+    - merge_requests
+    - tags
 
-include:
-  - template: Security/Container-Scanning.gitlab-ci.yml
+# Container Scanning template from GitLab (included at the top)
 
 # ============================================
 # TEST STAGE - API Security & DAST
@@ -218,8 +219,8 @@ api-security:
     - main
     - merge_requests
 
-# DAST - Dynamic Application Security Testing
-dast:
+# DAST - Dynamic Application Security Testing (Custom)
+dast-custom:
   stage: test
   image: maven:3.9-eclipse-temurin-25
   services:
@@ -245,8 +246,6 @@ dast:
     - kill $APP_PID || true
   artifacts:
     when: always
-    reports:
-      dast: dast-report.json
     paths:
       - dast-report.html
     expire_in: 1 week
@@ -255,8 +254,7 @@ dast:
     - main
     - merge_requests
 
-include:
-  - template: Security/DAST.gitlab-ci.yml
+# DAST template from GitLab (included at the top)
 
 # Unit & Integration Tests
 test:
