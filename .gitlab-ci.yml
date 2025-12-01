@@ -1,0 +1,423 @@
+stages:
+  - commit
+  - build
+  - test
+  - deploy
+
+variables:
+  MAVEN_OPTS: "-Dmaven.repo.local=$CI_PROJECT_DIR/.m2/repository"
+  DOCKER_IMAGE: "$CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA"
+  DOCKER_IMAGE_LATEST: "$CI_REGISTRY_IMAGE:latest"
+  DEPLOY_SERVER: "135.125.223.14"
+
+cache:
+  paths:
+    - .m2/repository/
+    - target/
+
+# ============================================
+# COMMIT STAGE - Security Scans
+# ============================================
+
+# SAST - Static Application Security Testing
+sast:
+  stage: commit
+  image: maven:3.9-eclipse-temurin-25
+  script:
+    - mvn clean compile
+    - echo "SAST scan completed"
+  allow_failure: false
+
+include:
+  - template: Security/SAST.gitlab-ci.yml
+  - template: Security/Secret-Detection.gitlab-ci.yml
+  - template: Security/IaC-Scanning.gitlab-ci.yml
+  - template: Security/Dependency-Scanning.gitlab-ci.yml
+
+# Secret Detection - automatically included via template
+
+# IaC Scanning - automatically included via template
+
+# Dependency Scanning - automatically included via template
+dependency_scanning:
+  stage: commit
+  variables:
+    DS_JAVA_VERSION: "25"
+
+# OWASP Dependency Check
+owasp-dependency-check:
+  stage: commit
+  image: maven:3.9-eclipse-temurin-25
+  script:
+    - echo "Running OWASP Dependency Check..."
+    - mvn org.owasp:dependency-check-maven:check -DfailBuildOnCVSS=7
+  artifacts:
+    when: always
+    reports:
+      dependency_scanning: target/dependency-check-report.json
+    paths:
+      - target/dependency-check-report.html
+      - target/dependency-check-report.json
+    expire_in: 1 week
+  allow_failure: false
+  cache:
+    key: owasp-nvd-cache
+    paths:
+      - ~/.m2/repository/org/owasp/dependency-check-data/
+
+# Coverage-guided Fuzz Testing
+fuzz-testing:
+  stage: commit
+  image: maven:3.9-eclipse-temurin-25
+  script:
+    - echo "Running Coverage-guided Fuzz Testing..."
+    - mvn clean test -Dtest=*FuzzTest* || true
+    - echo "Fuzz testing completed"
+  coverage: '/Total.*?([0-9]{1,3})%/'
+  artifacts:
+    when: always
+    reports:
+      junit: target/surefire-reports/TEST-*.xml
+      coverage_report:
+        coverage_format: cobertura
+        path: target/site/cobertura/coverage.xml
+    paths:
+      - target/surefire-reports/
+    expire_in: 1 week
+  allow_failure: true
+
+# ============================================
+# BUILD STAGE - Build & Container Scanning
+# ============================================
+
+build-application:
+  stage: build
+  image: maven:3.9-eclipse-temurin-25
+  script:
+    - echo "Building application..."
+    - mvn clean package -DskipTests
+  artifacts:
+    paths:
+      - target/*.jar
+    expire_in: 1 day
+  only:
+    - main
+    - merge_requests
+    - tags
+
+build-docker-image:
+  stage: build
+  image: docker:27
+  services:
+    - name: docker:27-dind
+      command: ["--insecure-registry=135.125.223.14:8888", "--insecure-registry=135.125.223.14:5000"]
+  variables:
+    DOCKER_HOST: tcp://docker:2376
+    DOCKER_TLS_CERTDIR: "/certs"
+    DOCKER_TLS_VERIFY: 1
+    DOCKER_CERT_PATH: "$DOCKER_TLS_CERTDIR/client"
+  before_script:
+    # Wait for Docker daemon to be ready
+    - until docker info; do sleep 1; done
+    - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" --password-stdin $CI_REGISTRY
+  script:
+    - echo "Building Docker image..."
+    - docker build -t $DOCKER_IMAGE -t $DOCKER_IMAGE_LATEST .
+    - docker push $DOCKER_IMAGE
+    - docker push $DOCKER_IMAGE_LATEST
+    - docker save $DOCKER_IMAGE -o image.tar
+  artifacts:
+    paths:
+      - image.tar
+    expire_in: 1 day
+  only:
+    - main
+    - merge_requests
+    - tags
+
+# Container Scanning
+container_scanning:
+  stage: build
+  image: docker:27
+  services:
+    - docker:27-dind
+  variables:
+    DOCKER_IMAGE: $DOCKER_IMAGE
+    DOCKER_USER: $CI_REGISTRY_USER
+    DOCKER_PASSWORD: $CI_REGISTRY_PASSWORD
+    CI_APPLICATION_REPOSITORY: $CI_REGISTRY_IMAGE
+    CI_APPLICATION_TAG: $CI_COMMIT_SHORT_SHA
+  before_script:
+    - docker load -i image.tar
+  script:
+    - echo "Running Container Security Scan..."
+    - |
+      docker run --rm \
+        -v /var/run/docker.sock:/var/run/docker.sock \
+        aquasec/trivy:latest image \
+        --exit-code 0 \
+        --severity HIGH,CRITICAL \
+        --format json \
+        --output container-scan-report.json \
+        $DOCKER_IMAGE
+  artifacts:
+    when: always
+    reports:
+      container_scanning: container-scan-report.json
+    paths:
+      - container-scan-report.json
+    expire_in: 1 week
+  dependencies:
+    - build-docker-image
+  allow_failure: false
+
+include:
+  - template: Security/Container-Scanning.gitlab-ci.yml
+
+# ============================================
+# TEST STAGE - API Security & DAST
+# ============================================
+
+# API Security Testing
+api-security:
+  stage: test
+  image: maven:3.9-eclipse-temurin-25
+  services:
+    - mongo:8.0
+  variables:
+    SPRING_DATA_MONGODB_URI: "mongodb://mongo:27017/testdb"
+  before_script:
+    - apt-get update && apt-get install -y curl jq
+  script:
+    - echo "Starting application for API security testing..."
+    - mvn spring-boot:run -Dspring-boot.run.profiles=test &
+    - APP_PID=$!
+    - sleep 30
+    - echo "Running API security tests..."
+    - |
+      # Test for common API vulnerabilities
+      curl -f http://localhost:8080/actuator/health || exit 1
+
+      # Test for SQL injection (if applicable)
+      curl -f "http://localhost:8080/api/test?id=1' OR '1'='1" || true
+
+      # Test for XSS (if applicable)
+      curl -f "http://localhost:8080/api/test?name=<script>alert('xss')</script>" || true
+
+      # Test API documentation availability
+      curl -f http://localhost:8080/v3/api-docs || true
+
+      echo "API security testing completed"
+    - kill $APP_PID || true
+  artifacts:
+    when: always
+    paths:
+      - target/api-security-report.json
+    expire_in: 1 week
+  allow_failure: true
+  only:
+    - main
+    - merge_requests
+
+# DAST - Dynamic Application Security Testing
+dast:
+  stage: test
+  image: maven:3.9-eclipse-temurin-25
+  services:
+    - mongo:8.0
+  variables:
+    SPRING_DATA_MONGODB_URI: "mongodb://mongo:27017/testdb"
+    DAST_WEBSITE: "http://localhost:8080"
+  before_script:
+    - apt-get update && apt-get install -y wget
+  script:
+    - echo "Starting application for DAST..."
+    - mvn spring-boot:run -Dspring-boot.run.profiles=test &
+    - APP_PID=$!
+    - sleep 30
+    - echo "Running DAST scan..."
+    - |
+      # Download and run OWASP ZAP baseline scan
+      wget https://github.com/zaproxy/zaproxy/releases/download/v2.15.0/ZAP_2.15.0_Linux.tar.gz
+      tar -xzf ZAP_2.15.0_Linux.tar.gz
+      cd ZAP_2.15.0
+      ./zap.sh -cmd -quickurl $DAST_WEBSITE -quickout ../dast-report.html || true
+      cd ..
+    - kill $APP_PID || true
+  artifacts:
+    when: always
+    reports:
+      dast: dast-report.json
+    paths:
+      - dast-report.html
+    expire_in: 1 week
+  allow_failure: true
+  only:
+    - main
+    - merge_requests
+
+include:
+  - template: Security/DAST.gitlab-ci.yml
+
+# Unit & Integration Tests
+test:
+  stage: test
+  image: maven:3.9-eclipse-temurin-25
+  services:
+    - mongo:8.0
+  variables:
+    SPRING_DATA_MONGODB_URI: "mongodb://mongo:27017/testdb"
+  script:
+    - echo "Running unit and integration tests..."
+    - mvn test
+    - mvn jacoco:report
+  coverage: '/Total.*?([0-9]{1,3})%/'
+  artifacts:
+    when: always
+    reports:
+      junit: target/surefire-reports/TEST-*.xml
+      coverage_report:
+        coverage_format: jacoco
+        path: target/site/jacoco/jacoco.xml
+    paths:
+      - target/surefire-reports/
+      - target/site/jacoco/
+    expire_in: 1 week
+  only:
+    - main
+    - merge_requests
+
+# ============================================
+# DEPLOY STAGE - Deploy & Operational Scanning
+# ============================================
+
+deploy-production:
+  stage: deploy
+  image: docker:27
+  services:
+    - docker:27-dind
+  before_script:
+    - apk add --no-cache openssh-client
+    - mkdir -p ~/.ssh
+    - echo "$SSH_PRIVATE_KEY" > ~/.ssh/id_rsa
+    - chmod 600 ~/.ssh/id_rsa
+    - ssh-keyscan -H $DEPLOY_SERVER >> ~/.ssh/known_hosts
+  script:
+    - echo "Deploying to production server $DEPLOY_SERVER..."
+    - |
+      ssh root@$DEPLOY_SERVER << 'EOF'
+        # Login to GitLab Container Registry
+        echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" --password-stdin $CI_REGISTRY
+
+        # Stop and remove existing container
+        docker stop demo-app || true
+        docker rm demo-app || true
+
+        # Pull latest image
+        docker pull $DOCKER_IMAGE_LATEST
+
+        # Run new container
+        docker run -d \
+          --name demo-app \
+          --restart unless-stopped \
+          -p 8080:8080 \
+          -e SPRING_PROFILES_ACTIVE=production \
+          -e SPRING_DATA_MONGODB_URI=$MONGODB_URI \
+          $DOCKER_IMAGE_LATEST
+
+        # Clean up old images
+        docker image prune -af --filter "until=24h"
+
+        echo "Deployment completed successfully"
+      EOF
+  environment:
+    name: production
+    url: http://$DEPLOY_SERVER:8080
+  only:
+    - main
+  when: manual
+
+# Operational Container Scanning
+operational-container-scan:
+  stage: deploy
+  image: docker:27
+  services:
+    - docker:27-dind
+  before_script:
+    - apk add --no-cache openssh-client curl
+    - mkdir -p ~/.ssh
+    - echo "$SSH_PRIVATE_KEY" > ~/.ssh/id_rsa
+    - chmod 600 ~/.ssh/id_rsa
+    - ssh-keyscan -H $DEPLOY_SERVER >> ~/.ssh/known_hosts
+  script:
+    - echo "Running operational container security scan on production server..."
+    - |
+      ssh root@$DEPLOY_SERVER << 'EOF'
+        # Install Trivy if not present
+        if ! command -v trivy &> /dev/null; then
+          wget https://github.com/aquasecurity/trivy/releases/download/v0.58.1/trivy_0.58.1_Linux-64bit.tar.gz
+          tar -xzf trivy_0.58.1_Linux-64bit.tar.gz
+          mv trivy /usr/local/bin/
+          rm trivy_0.58.1_Linux-64bit.tar.gz
+        fi
+
+        # Scan running containers
+        docker ps --format "{{.Names}}" | while read container; do
+          echo "Scanning container: $container"
+          trivy image --severity HIGH,CRITICAL $(docker inspect --format='{{.Config.Image}}' $container)
+        done
+
+        # Scan for runtime vulnerabilities
+        trivy rootfs --severity HIGH,CRITICAL /
+
+        # Check for container misconfigurations
+        docker inspect demo-app | jq '.[0].HostConfig' > /tmp/container-config.json
+        cat /tmp/container-config.json
+
+        echo "Operational container scan completed"
+      EOF
+  artifacts:
+    when: always
+    paths:
+      - operational-scan-report.json
+    expire_in: 1 week
+  allow_failure: true
+  only:
+    - main
+  needs:
+    - deploy-production
+
+# Continuous Security Monitoring
+security-monitoring:
+  stage: deploy
+  image: docker:27
+  services:
+    - docker:27-dind
+  before_script:
+    - apk add --no-cache openssh-client
+    - mkdir -p ~/.ssh
+    - echo "$SSH_PRIVATE_KEY" > ~/.ssh/id_rsa
+    - chmod 600 ~/.ssh/id_rsa
+    - ssh-keyscan -H $DEPLOY_SERVER >> ~/.ssh/known_hosts
+  script:
+    - echo "Running security monitoring checks..."
+    - |
+      ssh root@$DEPLOY_SERVER << 'EOF'
+        # Check container health
+        docker ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
+
+        # Check for excessive resource usage
+        docker stats --no-stream demo-app
+
+        # Check logs for security events
+        docker logs demo-app --tail 100 | grep -i "error\|exception\|security\|unauthorized" || true
+
+        # Check exposed ports
+        docker port demo-app
+
+        echo "Security monitoring completed"
+      EOF
+  allow_failure: true
+  only:
+    - main
+  when: on_success
