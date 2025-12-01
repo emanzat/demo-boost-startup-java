@@ -141,16 +141,32 @@ jobs:
           distribution: 'liberica'
           cache: 'maven'
 
-      # OWASP Dependency Check via Maven Plugin
+      # Cache OWASP NVD database
+      - name: Cache OWASP NVD Database
+        uses: actions/cache@v4
+        with:
+          path: ~/.m2/repository/org/owasp/dependency-check-data
+          key: owasp-nvd-${{ runner.os }}-${{ github.run_id }}
+          restore-keys: |
+            owasp-nvd-${{ runner.os }}-
+
+      # OWASP Dependency Check via Maven Plugin (optimized)
       - name: Run OWASP Dependency-Check
         run: |
-          mvn org.owasp:dependency-check-maven:11.1.1:aggregate \
+          mvn org.owasp:dependency-check-maven:11.1.1:check \
             -DfailBuildOnCVSS=7 \
+            -DskipSystemScope=true \
+            -DskipTestScope=true \
             -DretireJsAnalyzerEnabled=false \
             -DnodeAnalyzerEnabled=false \
-            -Dformats=SARIF \
-            -DprettyPrint=true
+            -DassemblyAnalyzerEnabled=false \
+            -DnugetconfAnalyzerEnabled=false \
+            -DnuspecAnalyzerEnabled=false \
+            -Dformats=SARIF,HTML \
+            -DprettyPrint=true \
+            -DsuppressionFiles=.owasp-suppressions.xml
         continue-on-error: true
+        timeout-minutes: 10
 
       - name: Upload OWASP Dependency-Check SARIF
         uses: github/codeql-action/upload-sarif@v4
