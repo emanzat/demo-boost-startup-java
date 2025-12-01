@@ -150,7 +150,11 @@ jobs:
           restore-keys: |
             owasp-nvd-${{ runner.os }}-
 
-      # OWASP Dependency Check via Maven Plugin (optimized)
+      # Nettoyage du cache OWASP NVD database pour éviter les verrous
+      - name: Clean OWASP Dependency Check data
+        run: rm -rf ~/.m2/repository/org/owasp/dependency-check-data
+
+      # OWASP Dependency Check via Maven Plugin (optimisé)
       - name: Run OWASP Dependency-Check
         run: |
           mvn org.owasp:dependency-check-maven:11.1.1:check \
@@ -164,7 +168,8 @@ jobs:
             -DnuspecAnalyzerEnabled=false \
             -Dformats=SARIF,HTML \
             -DprettyPrint=true \
-            -DsuppressionFiles=.owasp-suppressions.xml
+            -DsuppressionFiles=.owasp-suppressions.xml \
+            -Ddata.directory=${{ runner.temp }}/dependency-check-data
 
       - name: Upload OWASP Dependency-Check SARIF
         uses: github/codeql-action/upload-sarif@v4
