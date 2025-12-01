@@ -1,0 +1,17 @@
+# ZAP Scanning Rules
+# Use the -config flag to set ZAP config values
+# Format is id	WARN|IGNORE|FAIL	param1	param2...
+
+# Ignore false positives for health endpoints
+10202	IGNORE	(actuator/health)
+
+# Reduce noise from information disclosure warnings
+10096	WARN
+
+# Security headers - warn instead of fail
+10020	WARN
+10021	WARN
+10035	WARN
+10036	WARN
+10037	WARN
+10038	WARN
