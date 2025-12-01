@@ -166,10 +166,12 @@ jobs:
             -DassemblyAnalyzerEnabled=false \
             -DnugetconfAnalyzerEnabled=false \
             -DnuspecAnalyzerEnabled=false \
+            -DossindexAnalyzerEnabled=false \
             -Dformats=SARIF,HTML \
             -DprettyPrint=true \
             -DsuppressionFiles=.owasp-suppressions.xml \
-            -Ddata.directory=${{ runner.temp }}/dependency-check-data
+            -Ddata.directory=${{ runner.temp }}/dependency-check-data \
+            -DautoUpdate=false
 
       - name: Upload OWASP Dependency-Check SARIF
         uses: github/codeql-action/upload-sarif@v4
