@@ -1,0 +1,25 @@
+# Configuration Gitleaks
+title = "Gitleaks Configuration for demo-boost-startup-java"
+
+[extend]
+# Utilise la configuration par défaut de Gitleaks
+useDefault = true
+
+[allowlist]
+description = "Allowlist for documentation and test files"
+
+# Ignorer les fichiers de documentation qui contiennent des exemples de secrets
+paths = [
+    '''\.github/SECRETS\.md''',
+    '''README.*\.md''',
+    '''docs/.*''',
+]
+
+# Ignorer les fichiers de test qui peuvent contenir des secrets de test
+regexes = [
+    '''test.*secret.*''',
+    '''example.*key.*''',
+]
+
+# Commits à ignorer (si nécessaire)
+commits = []
