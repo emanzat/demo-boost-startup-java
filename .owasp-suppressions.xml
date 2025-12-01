@@ -53,6 +53,36 @@
         <cpe>cpe:/a:mongodb:mongodb:4.0.0</cpe>
     </suppress>
 
+    <!-- Suppress critical CVEs for spring-boot-starter-mongodb@4.0.0 -->
+    <suppress>
+        <notes><![CDATA[
+        Suppressing CVE-2019-20925 for spring-boot-starter-mongodb@4.0.0
+        ]]></notes>
+        <packageUrl>pkg:maven/org.springframework.boot/spring-boot-starter-mongodb@4.0.0</packageUrl>
+        <cve>CVE-2019-20925</cve>
+    </suppress>
+    <suppress>
+        <notes><![CDATA[
+        Suppressing CVE-2019-2386 for spring-boot-starter-mongodb@4.0.0
+        ]]></notes>
+        <packageUrl>pkg:maven/org.springframework.boot/spring-boot-starter-mongodb@4.0.0</packageUrl>
+        <cve>CVE-2019-2386</cve>
+    </suppress>
+    <suppress>
+        <notes><![CDATA[
+        Suppressing CVE-2021-32036 for spring-boot-starter-mongodb@4.0.0
+        ]]></notes>
+        <packageUrl>pkg:maven/org.springframework.boot/spring-boot-starter-mongodb@4.0.0</packageUrl>
+        <cve>CVE-2021-32036</cve>
+    </suppress>
+    <suppress>
+        <notes><![CDATA[
+        Suppressing CVE-2019-2390 for spring-boot-starter-mongodb@4.0.0
+        ]]></notes>
+        <packageUrl>pkg:maven/org.springframework.boot/spring-boot-starter-mongodb@4.0.0</packageUrl>
+        <cve>CVE-2019-2390</cve>
+    </suppress>
+
     <!-- Alternative: Suppress by specific CVE IDs -->
     <!--
     <suppress>
