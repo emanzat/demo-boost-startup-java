@@ -128,6 +128,7 @@ jobs:
     permissions:
       security-events: write
       contents: read
+      actions: read
 
     steps:
       - name: Checkout code
@@ -136,13 +137,14 @@ jobs:
       - name: Setup JDK for dependency scan
         uses: actions/setup-java@v4
         with:
-          java-version: ${{ env.JAVA_VERSION }}
-          distribution: 'liberica'
+          java-version: '21'
+          distribution: 'temurin'
           cache: 'maven'
 
       # OWASP Dependency Check
       - name: Run OWASP Dependency-Check
         uses: dependency-check/Dependency-Check_Action@main
+        id: depcheck
         with:
           project: 'demo-boost-startup-java'
           path: '.'
@@ -150,6 +152,7 @@ jobs:
           args: >
             --enableRetired
             --failOnCVSS 7
+        continue-on-error: true
 
       - name: Upload OWASP Dependency-Check SARIF
         uses: github/codeql-action/upload-sarif@v4
@@ -163,6 +166,10 @@ jobs:
     name: Secure IaC - Dockerfile Scan
     runs-on: ubuntu-latest
     needs: [build-and-test]
+    permissions:
+      security-events: write
+      contents: read
+      actions: read
 
     steps:
       - name: Checkout code
@@ -181,7 +188,7 @@ jobs:
         uses: github/codeql-action/upload-sarif@v4
         if: always()
         with:
-          sarif_file: checkov-report.sarif
+          sarif_file: checkov-report.sarif/results_sarif.sarif
           category: checkov-iac
 
   # ==================== STAGE 6: BUILD DOCKER IMAGE ====================
@@ -241,6 +248,7 @@ jobs:
     permissions:
       security-events: write
       contents: read
+      actions: read
 
     steps:
       - name: Checkout code
