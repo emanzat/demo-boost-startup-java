@@ -5,6 +5,18 @@ on:
   pull_request:
     branches: [ "main" ]
 jobs:
+  # Static Application Security Testing (SAST) using Semgrep
+  sast:
+    name: Semgrep SAST scan
+    runs-on: ubuntu-latest       # Runs on GitHub-hosted Linux VM
+    steps:
+      - uses: actions/checkout@v4  # Step 1: Checkout code in repo
+      - uses: returntocorp/semgrep-action@v1
+        with:
+          config: 'auto'           # Use auto mode for language-based rulesets
+          output: sarif-results.sarif  # Output format for integration with GitHub code scanning
+    outputs:
+      findings: ${{ steps.semgrep.outputs.findings }}  # Optional: expose findings
   build:
     runs-on: ubuntu-latest
     steps:
