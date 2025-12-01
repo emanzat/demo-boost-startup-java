@@ -47,7 +47,8 @@ MongoDB: 7.x (recommandé)
 Lancez rapidement une instance MongoDB avec la commande suivante :
 
 ```bash
-docker run --name demo-mongo -d -p 27017:27017 mongo:7
+docker network create app-network
+docker run --name demo-mongo -d -p 27017:27017 --network app-network mongo:7
 ```
 
 > ✅ Cette commande crée un conteneur MongoDB accessible sur le port **27017**
