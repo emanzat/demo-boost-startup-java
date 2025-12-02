@@ -1,28 +1,23 @@
 on:
   workflow_call:
+
+permissions:
+  security-events: write
+  contents: read
+  actions: read
+
 jobs:
-  build-docker-image:
-    name: Build Docker Image
+  build-and-scan-docker:
+    name: Build & Scan Docker Image
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
-      - name: Docker metadata
-        id: meta
-        uses: docker/metadata-action@v5
-        with:
-          images: demo-boost-startup-java
-          tags: |
-            type=ref,event=branch
-            type=ref,event=pr
-            type=semver,pattern={{version}}
-            type=semver,pattern={{major}}.{{minor}}
-            type=sha,prefix={{branch}}-
-            type=raw,value=latest,enable={{is_default_branch}}
+
       - name: Build Docker image
-        id: build
         uses: docker/build-push-action@v5
         with:
           context: .
@@ -32,10 +27,51 @@ jobs:
           tags: demo-boost-startup-java:${{ github.sha }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
-          outputs: type=docker,dest=/tmp/image.tar
-      - name: Upload Docker image artifact
+
+      - name: Run Trivy vulnerability scanner (JSON)
+        uses: aquasecurity/trivy-action@0.27.0
+        with:
+          image-ref: demo-boost-startup-java:${{ github.sha }}
+          format: 'json'
+          output: 'trivy-results.json'
+          severity: 'CRITICAL,HIGH,MEDIUM'
+          exit-code: '0'
+
+      - name: Install jq
+        run: sudo apt-get update && sudo apt-get install -y jq
+
+      - name: Extract CVE list from Trivy report
+        run: |
+          jq -r '.Results[].Vulnerabilities[].VulnerabilityID' trivy-results.json | sort | uniq > cve-list.txt
+          cat cve-list.txt
+
+      - name: Upload CVE list
         uses: actions/upload-artifact@v4
         with:
-          name: docker-image
-          path: /tmp/image.tar
-          retention-days: 1
+          name: cve-list
+          path: cve-list.txt
+
+      - name: Run Trivy vulnerability scanner (SARIF)
+        uses: aquasecurity/trivy-action@0.27.0
+        with:
+          image-ref: demo-boost-startup-java:${{ github.sha }}
+          format: 'sarif'
+          output: 'trivy-results.sarif'
+          severity: 'CRITICAL,HIGH,MEDIUM'
+
+      - name: Upload Trivy SARIF
+        uses: github/codeql-action/upload-sarif@v4
+        if: always()
+        with:
+          sarif_file: trivy-results.sarif
+          category: trivy-container-scan
+
+      - name: Check for critical vulnerabilities
+        uses: aquasecurity/trivy-action@0.27.0
+        with:
+          image-ref: demo-boost-startup-java:${{ github.sha }}
+          format: 'table'
+          exit-code: '1'
+          ignore-unfixed: true
+          severity: 'CRITICAL,HIGH'
+          trivyignores: .trivyignore
