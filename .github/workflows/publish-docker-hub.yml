@@ -1,5 +1,10 @@
 on:
   workflow_call:
+    secrets:
+      DOCKERHUB_USERNAME:
+        required: true
+      DOCKERHUB_TOKEN:
+        required: true
 jobs:
   publish-docker-hub:
     name: Publish to Docker Hub

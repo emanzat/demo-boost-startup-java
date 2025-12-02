@@ -55,6 +55,9 @@ jobs:
       security-events: write
       contents: read
       actions: read
+    secrets:
+      DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+      DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
   deploy-production-server:
     needs: publish-docker-hub
     uses: ./.github/workflows/deploy-production-server.yml
