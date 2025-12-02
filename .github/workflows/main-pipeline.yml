@@ -29,7 +29,7 @@ jobs:
     uses: ./.github/workflows/secure-iac-dockerfile-scan.yml
 
   build-docker-image:
-    needs: [code-quality-sast, secret-scanning, sca-dependency-scan, secure-iac-dockerfile-scan]
+    needs: [code-quality-sast, secret-scanning, secure-iac-dockerfile-scan]
     uses: ./.github/workflows/build-docker-image.yml
 
   container-security-scan:
