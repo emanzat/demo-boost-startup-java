@@ -28,7 +28,7 @@ jobs:
             docker pull ${{ secrets.DOCKERHUB_USERNAME }}/demo-boost-startup-java:latest
             docker stop demo-boost-startup-java || true
             docker rm demo-boost-startup-java || true
-            docker run -d --name demo-boost-startup-java --restart unless-stopped -p 8080:8080 -e SPRING_PROFILES_ACTIVE=production ${{ secrets.DOCKERHUB_USERNAME }}/demo-boost-startup-java:latest
+            docker run -d --name demo-boost-startup-java -p 8080:8080 --network app-network ${{ secrets.DOCKERHUB_USERNAME }}/demo-boost-startup-java:latest
             sleep 10
             curl -f http://localhost:8080/actuator/health || exit 1
             docker image prune -af --filter "until=24h"

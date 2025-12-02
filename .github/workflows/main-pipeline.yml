@@ -8,6 +8,11 @@ on:
   schedule:
     - cron: '0 2 * * 1'
 
+permissions:
+  security-events: write
+  contents: read
+  actions: read
+
 jobs:
   build-and-test:
     uses: ./.github/workflows/build-unit-tests.yml
@@ -15,10 +20,6 @@ jobs:
   code-quality-sast:
     needs: build-and-test
     uses: ./.github/workflows/code-quality-sast.yml
-    permissions:
-      security-events: write
-      contents: read
-      actions: read
 
   secret-scanning:
     needs: build-and-test
@@ -31,18 +32,10 @@ jobs:
   secure-iac-dockerfile-scan:
     needs: build-and-test
     uses: ./.github/workflows/secure-iac-dockerfile-scan.yml
-    permissions:
-      security-events: write
-      contents: read
-      actions: read
 
   build-and-scan-docker:
     needs: [code-quality-sast, secret-scanning, secure-iac-dockerfile-scan]
     uses: ./.github/workflows/build-docker-image.yml
-    permissions:
-      security-events: write
-      contents: read
-      actions: read
 
 #  dast-dynamic-security-testing:
 #    needs: build-and-scan-docker
@@ -51,30 +44,23 @@ jobs:
   publish-docker-hub:
     needs: [build-and-scan-docker]
     uses: ./.github/workflows/publish-docker-hub.yml
-    permissions:
-      security-events: write
-      contents: read
-      actions: read
-    secrets:
-      DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
-      DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+    secrets: inherit
+
   deploy-production-server:
     needs: publish-docker-hub
     uses: ./.github/workflows/deploy-production-server.yml
-    permissions:
-      security-events: write
-      contents: read
-      actions: read
-    secrets:
-      DEPLOY_SERVER: ${{ secrets.DEPLOY_SERVER }}
-      DEPLOY_SSH_USER: ${{ secrets.DEPLOY_SSH_USER }}
-      DEPLOY_SSH_PRIVATE_KEY: ${{ secrets.DEPLOY_SSH_PRIVATE_KEY }}
-      DEPLOY_SSH_PORT: ${{ secrets.DEPLOY_SSH_PORT }}
-      DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+    secrets: inherit
+
   send-notifications:
     needs: deploy-production-server
-    uses: ./.github/workflows/send-notifications.yml
-    permissions:
-      security-events: write
-      contents: read
-      actions: read
+    runs-on: ubuntu-latest
+    if: always()
+    steps:
+      - name: Deployment status
+        run: |
+          if [ "${{ needs.deploy-production-server.result }}" == "success" ]; then
+            echo "✅ Deployment successful!"
+          else
+            echo "❌ Deployment failed!"
+            exit 1
+          fi
