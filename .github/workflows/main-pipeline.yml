@@ -1,0 +1,53 @@
+name: Main CI/CD Pipeline
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+  schedule:
+    - cron: '0 2 * * 1'
+
+jobs:
+  build-and-test:
+    uses: ./.github/workflows/build-unit-tests.yml
+
+  code-quality-sast:
+    needs: build-and-test
+    uses: ./.github/workflows/code-quality-sast.yml
+
+  secret-scanning:
+    needs: build-and-test
+    uses: ./.github/workflows/secret-scanning.yml
+
+  sca-dependency-scan:
+    needs: build-and-test
+    uses: ./.github/workflows/sca-dependency-scan.yml
+
+  secure-iac-dockerfile-scan:
+    needs: build-and-test
+    uses: ./.github/workflows/secure-iac-dockerfile-scan.yml
+
+  build-docker-image:
+    needs: [code-quality-sast, secret-scanning, sca-dependency-scan, secure-iac-dockerfile-scan]
+    uses: ./.github/workflows/build-docker-image.yml
+
+  container-security-scan:
+    needs: build-docker-image
+    uses: ./.github/workflows/container-security-scan.yml
+
+  dast-dynamic-security-testing:
+    needs: container-security-scan
+    uses: ./.github/workflows/dast-dynamic-security-testing.yml
+
+  publish-docker-hub:
+    needs: [container-security-scan, dast-dynamic-security-testing]
+    uses: ./.github/workflows/publish-docker-hub.yml
+
+  deploy-production-server:
+    needs: publish-docker-hub
+    uses: ./.github/workflows/deploy-production-server.yml
+
+  send-notifications:
+    needs: deploy-production-server
+    uses: ./.github/workflows/send-notifications.yml

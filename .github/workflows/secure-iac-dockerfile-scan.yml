@@ -1,0 +1,23 @@
+on:
+  workflow_call:
+jobs:
+  secure-iac-dockerfile-scan:
+    name: Secure IaC - Dockerfile Scan
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      - name: Run Checkov IaC scan
+        uses: bridgecrewio/checkov-action@v12
+        with:
+          directory: .
+          framework: dockerfile
+          output_format: sarif
+          output_file_path: checkov-report.sarif
+          soft_fail: true
+      - name: Upload Checkov SARIF
+        uses: github/codeql-action/upload-sarif@v4
+        if: always()
+        with:
+          sarif_file: checkov-report.sarif/results_sarif.sarif
+          category: checkov-iac

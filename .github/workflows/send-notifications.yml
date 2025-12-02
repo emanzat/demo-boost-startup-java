@@ -1,0 +1,15 @@
+on:
+  workflow_call:
+jobs:
+  send-notifications:
+    name: Send Notifications
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deployment status
+        run: |
+          if [ "${{ needs.deploy-production-server.result }}" == "success" ]; then
+            echo "✅ Deployment successful!"
+          else
+            echo "❌ Deployment failed!"
+            exit 1
+          fi

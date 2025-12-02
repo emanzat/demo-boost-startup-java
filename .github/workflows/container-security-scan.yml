@@ -1,0 +1,37 @@
+on:
+  workflow_call:
+jobs:
+  container-security-scan:
+    name: Container Security Scan
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      - name: Download Docker image
+        uses: actions/download-artifact@v4
+        with:
+          name: docker-image
+          path: /tmp
+      - name: Load Docker image
+        run: docker load --input /tmp/image.tar
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@0.27.0
+        with:
+          image-ref: demo-boost-startup-java:${{ github.sha }}
+          format: 'sarif'
+          output: 'trivy-results.sarif'
+          severity: 'CRITICAL,HIGH,MEDIUM'
+      - name: Upload Trivy SARIF
+        uses: github/codeql-action/upload-sarif@v4
+        if: always()
+        with:
+          sarif_file: trivy-results.sarif
+          category: trivy-container-scan
+      - name: Check for critical vulnerabilities
+        uses: aquasecurity/trivy-action@0.27.0
+        with:
+          image-ref: demo-boost-startup-java:${{ github.sha }}
+          format: 'table'
+          exit-code: '1'
+          ignore-unfixed: true
+          severity: 'CRITICAL,HIGH'
