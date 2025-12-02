@@ -53,7 +53,7 @@ jobs:
 #    uses: ./.github/workflows/dast-dynamic-security-testing.yml
 
   publish-docker-hub:
-    needs: [container-security-scan, dast-dynamic-security-testing]
+    needs: [container-security-scan]
     uses: ./.github/workflows/publish-docker-hub.yml
     permissions:
       security-events: write
