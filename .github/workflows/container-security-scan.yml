@@ -32,6 +32,7 @@ jobs:
 
       - name: Extract CVE list from Trivy report
         run: |
+          jq . fichier.json
           jq -r '.Results[].Vulnerabilities[].VulnerabilityID' trivy-results.json | sort | uniq > cve-list.txt
           cat cve-list.txt
 
