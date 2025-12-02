@@ -1,12 +1,12 @@
 name: CI/CD Pipeline with Security
 
-on:
-  push:
-    branches: [ "main" ]
-  pull_request:
-    branches: [ "main" ]
-  schedule:
-    - cron: '0 2 * * 1'  # Weekly security scan on Monday at 2 AM
+#on:
+#  push:
+#    branches: [ "main" ]
+#  pull_request:
+#    branches: [ "main" ]
+#  schedule:
+#    - cron: '0 2 * * 1'  # Weekly security scan on Monday at 2 AM
 
 env:
   DOCKER_IMAGE_NAME: demo-boost-startup-java

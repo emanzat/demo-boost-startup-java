@@ -1,5 +1,11 @@
 on:
   workflow_call:
+
+permissions:
+  security-events: write
+  contents: read
+  actions: read
+
 jobs:
   code-quality-sast:
     name: Code Quality & SAST

@@ -1,5 +1,11 @@
 on:
   workflow_call:
+
+permissions:
+  security-events: write
+  contents: read
+  actions: read
+
 jobs:
   secure-iac-dockerfile-scan:
     name: Secure IaC - Dockerfile Scan
