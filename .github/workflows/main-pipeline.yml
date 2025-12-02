@@ -15,6 +15,10 @@ jobs:
   code-quality-sast:
     needs: build-and-test
     uses: ./.github/workflows/code-quality-sast.yml
+    permissions:
+      security-events: write
+      contents: read
+      actions: read
 
   secret-scanning:
     needs: build-and-test
@@ -27,6 +31,10 @@ jobs:
   secure-iac-dockerfile-scan:
     needs: build-and-test
     uses: ./.github/workflows/secure-iac-dockerfile-scan.yml
+    permissions:
+      security-events: write
+      contents: read
+      actions: read
 
   build-docker-image:
     needs: [code-quality-sast, secret-scanning, secure-iac-dockerfile-scan]
