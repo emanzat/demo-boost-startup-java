@@ -24,11 +24,12 @@ Configure these secrets in your GitHub repository:
 
 ### SSH Deployment Configuration
 
-| Secret Name | Description | Example |
-|-------------|-------------|---------|
-| `DEPLOY_SSH_USER` | SSH username for deployment server | `deploy` or `ubuntu` |
-| `DEPLOY_SSH_PRIVATE_KEY` | SSH private key for authentication | Full private key content (see below) |
-| `DEPLOY_SSH_PORT` | SSH port (optional, defaults to 22) | `22` or `2222` |
+| Secret Name | Description | Example | Value |
+|-------------|-------------|---------|-------|
+| `DEPLOY_SERVER` | Deployment server IP or hostname | `135.125.223.14`  | `` |
+| `DEPLOY_SSH_USER` | SSH username for deployment server | `ubuntu` | - |
+| `DEPLOY_SSH_PRIVATE_KEY` | SSH private key for authentication | Full private key content (see below) | - |
+| `DEPLOY_SSH_PORT` | SSH port (optional, defaults to 22) | `22` or `2222` | - |
 
 **How to generate SSH key pair:**
 
@@ -144,6 +145,7 @@ Before running the pipeline, verify:
 
 - [ ] `DOCKERHUB_USERNAME` is set
 - [ ] `DOCKERHUB_TOKEN` is set and valid
+- [ ] `DEPLOY_SERVER` is set to `135.125.223.14`
 - [ ] `DEPLOY_SSH_USER` is set
 - [ ] `DEPLOY_SSH_PRIVATE_KEY` is set with full private key
 - [ ] SSH connection works: `ssh deploy@135.125.223.14`

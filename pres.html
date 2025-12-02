@@ -1,0 +1,1632 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8" />
+    <title>Cloud Native, DevOps, Microservices, Service Mesh & Serverless</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <style>
+        :root {
+          --bg: #050816;
+          --bg-alt: #0b1020;
+          --card: #101529;
+          --accent: #38bdf8;
+          --accent-soft: rgba(56, 189, 248, 0.15);
+          --text: #e5e7eb;
+          --muted: #9ca3af;
+          --border: rgba(148, 163, 184, 0.2);
+          --radius-lg: 18px;
+          --shadow-soft: 0 18px 40px rgba(15, 23, 42, 0.7);
+        }
+
+        * {
+          box-sizing: border-box;
+        }
+
+        html, body {
+          margin: 0;
+          padding: 0;
+          font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+          background: radial-gradient(circle at top, #0f172a 0, #020617 45%, #000 100%);
+          color: var(--text);
+          scroll-behavior: smooth;
+        }
+
+        body {
+          min-height: 100vh;
+        }
+
+        /* Layout */
+        .app {
+          max-width: 1200px;
+          margin: 0 auto;
+          padding: 96px 16px 40px;
+          display: grid;
+          grid-template-columns: 260px minmax(0, 1fr);
+          gap: 24px;
+        }
+
+        @media (max-width: 900px) {
+          .app {
+            grid-template-columns: minmax(0, 1fr);
+            padding-top: 80px;
+          }
+        }
+
+        /* Header */
+        .topbar {
+          position: fixed;
+          inset: 0 0 auto 0;
+          height: 64px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          backdrop-filter: blur(16px);
+          background: linear-gradient(to right, rgba(15, 23, 42, 0.96), rgba(15, 23, 42, 0.85));
+          border-bottom: 1px solid rgba(148, 163, 184, 0.2);
+          z-index: 20;
+        }
+
+        .topbar-inner {
+          width: 100%;
+          max-width: 1200px;
+          padding: 0 16px;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 16px;
+        }
+
+        .brand {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+        }
+
+        .brand-logo {
+          width: 32px;
+          height: 32px;
+          border-radius: 999px;
+          background: radial-gradient(circle at 30% 0, #f97316, #a855f7 40%, #0ea5e9 80%);
+          box-shadow: 0 0 0 1px rgba(15, 23, 42, 0.9), 0 10px 30px rgba(56, 189, 248, 0.3);
+          position: relative;
+        }
+
+        .brand-logo::after {
+          content: "";
+          position: absolute;
+          inset: 7px;
+          border-radius: inherit;
+          border: 2px solid rgba(15, 23, 42, 0.8);
+        }
+
+        .brand-title {
+          font-weight: 600;
+          letter-spacing: 0.03em;
+          font-size: 0.95rem;
+          text-transform: uppercase;
+          color: #e5e7eb;
+        }
+
+        .brand-sub {
+          font-size: 0.7rem;
+          color: var(--muted);
+        }
+
+        .top-badges {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          font-size: 0.75rem;
+          color: var(--muted);
+          flex-wrap: wrap;
+          justify-content: flex-end;
+        }
+
+        .pill {
+          border-radius: 999px;
+          border: 1px solid rgba(148, 163, 184, 0.4);
+          padding: 4px 10px;
+          backdrop-filter: blur(10px);
+          background: radial-gradient(circle at top left, rgba(56, 189, 248, 0.16), rgba(15, 23, 42, 0.9));
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          white-space: nowrap;
+        }
+
+        .pill-dot {
+          width: 6px;
+          height: 6px;
+          border-radius: 999px;
+          background: #4ade80;
+          box-shadow: 0 0 0 6px rgba(74, 222, 128, 0.25);
+        }
+
+        /* Sidebar nav */
+        .sidebar {
+          position: sticky;
+          top: 88px;
+          align-self: flex-start;
+          border-radius: var(--radius-lg);
+          background: radial-gradient(circle at top, rgba(56, 189, 248, 0.16), rgba(15, 23, 42, 0.96));
+          border: 1px solid rgba(148, 163, 184, 0.25);
+          box-shadow: var(--shadow-soft);
+          padding: 16px 14px 14px;
+        }
+
+        .sidebar-title {
+          font-size: 0.8rem;
+          text-transform: uppercase;
+          letter-spacing: 0.13em;
+          color: var(--muted);
+          margin-bottom: 12px;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 8px;
+        }
+
+        .sidebar-title-badge {
+          font-size: 0.7rem;
+          padding: 2px 8px;
+          border-radius: 999px;
+          background: rgba(15, 23, 42, 0.8);
+          border: 1px solid rgba(148, 163, 184, 0.4);
+        }
+
+        .toc {
+          list-style: none;
+          padding: 0;
+          margin: 0;
+          font-size: 0.83rem;
+          display: grid;
+          gap: 6px;
+        }
+
+        .toc a {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          padding: 6px 9px;
+          border-radius: 999px;
+          text-decoration: none;
+          color: var(--muted);
+          border: 1px solid transparent;
+          transition: all 0.16s ease-out;
+          background: transparent;
+        }
+
+        .toc a span.icon {
+          font-size: 0.9rem;
+        }
+
+        .toc a:hover {
+          background: rgba(15, 23, 42, 0.9);
+          border-color: rgba(148, 163, 184, 0.5);
+          color: var(--text);
+          transform: translateY(-1px);
+        }
+
+        .toc a.active {
+          background: radial-gradient(circle at top, rgba(56, 189, 248, 0.28), rgba(15, 23, 42, 0.98));
+          color: #f9fafb;
+          border-color: rgba(56, 189, 248, 0.8);
+          box-shadow: 0 0 0 1px rgba(15, 23, 42, 0.9), 0 12px 30px rgba(15, 23, 42, 0.9);
+        }
+
+        .toc a small {
+          font-size: 0.72rem;
+          opacity: 0.75;
+        }
+
+        /* Main */
+        .main {
+          display: flex;
+          flex-direction: column;
+          gap: 18px;
+        }
+
+        .hero {
+          border-radius: var(--radius-lg);
+          padding: 22px 20px 18px;
+          background: linear-gradient(135deg, rgba(56, 189, 248, 0.10), rgba(129, 140, 248, 0.12), rgba(15, 23, 42, 0.96));
+          border: 1px solid rgba(148, 163, 184, 0.4);
+          box-shadow: var(--shadow-soft);
+          position: relative;
+          overflow: hidden;
+        }
+
+        .hero::after {
+          content: "";
+          position: absolute;
+          inset: 0;
+          background:
+            radial-gradient(circle at 15% 20%, rgba(52, 211, 153, 0.19), transparent 55%),
+            radial-gradient(circle at 80% 10%, rgba(59, 130, 246, 0.28), transparent 60%),
+            radial-gradient(circle at 80% 80%, rgba(236, 72, 153, 0.18), transparent 55%);
+          mix-blend-mode: screen;
+          opacity: 0.8;
+          pointer-events: none;
+        }
+
+        .hero-inner {
+          position: relative;
+          z-index: 1;
+          display: grid;
+          grid-template-columns: minmax(0, 1.6fr) minmax(0, 1.2fr);
+          gap: 18px;
+          align-items: center;
+        }
+
+        @media (max-width: 900px) {
+          .hero-inner {
+            grid-template-columns: minmax(0, 1fr);
+          }
+        }
+
+        .hero-title {
+          font-size: clamp(1.6rem, 2.4vw, 2rem);
+          font-weight: 650;
+          letter-spacing: 0.03em;
+          text-transform: uppercase;
+          margin-bottom: 6px;
+        }
+
+        .hero-gradient {
+          background: linear-gradient(120deg, #e0f2fe, #bfdbfe, #a5b4fc, #f9a8d4);
+          -webkit-background-clip: text;
+          color: transparent;
+        }
+
+        .hero-subtitle {
+          font-size: 0.96rem;
+          color: #e5e7eb;
+          max-width: 34rem;
+        }
+
+        .hero-tags {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 6px;
+          margin-top: 10px;
+          font-size: 0.78rem;
+        }
+
+        .hero-tags span {
+          border-radius: 999px;
+          padding: 4px 10px;
+          background: rgba(15, 23, 42, 0.92);
+          border: 1px solid rgba(148, 163, 184, 0.5);
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+        }
+
+        .hero-tags span b {
+          font-weight: 600;
+          color: #e5e7eb;
+        }
+
+        .hero-visual {
+          justify-self: flex-end;
+          max-width: 260px;
+          width: 100%;
+        }
+
+        .orb {
+          position: relative;
+          border-radius: 999px;
+          padding: 18px 16px;
+          background: radial-gradient(circle at 30% 0, rgba(248, 250, 252, 0.18), rgba(15, 23, 42, 0.98));
+          border: 1px solid rgba(148, 163, 184, 0.55);
+          box-shadow: 0 18px 40px rgba(15, 23, 42, 0.9);
+          overflow: hidden;
+        }
+
+        .orb-glow {
+          position: absolute;
+          inset: -40%;
+          background: conic-gradient(from 120deg, rgba(56, 189, 248, 0.0), rgba(56, 189, 248, 0.36), rgba(129, 140, 248, 0.0), rgba(236, 72, 153, 0.4));
+          opacity: 0.6;
+          mix-blend-mode: screen;
+          filter: blur(16px);
+          pointer-events: none;
+        }
+
+        .orb-main {
+          position: relative;
+          z-index: 1;
+        }
+
+        .orb-title {
+          font-size: 0.78rem;
+          text-transform: uppercase;
+          letter-spacing: 0.16em;
+          color: var(--muted);
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          margin-bottom: 10px;
+        }
+
+        .orb-dot {
+          width: 8px;
+          height: 8px;
+          border-radius: 999px;
+          background: #22c55e;
+          box-shadow: 0 0 0 6px rgba(34, 197, 94, 0.25);
+        }
+
+        .orb-grid {
+          display: grid;
+          grid-template-columns: 1.6fr 1.4fr;
+          gap: 12px;
+          margin-top: 4px;
+        }
+
+        .orb-chip {
+          border-radius: 14px;
+          padding: 8px 10px;
+          background: rgba(15, 23, 42, 0.95);
+          border: 1px solid rgba(148, 163, 184, 0.55);
+          font-size: 0.78rem;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 8px;
+        }
+
+        .orb-chip span.label {
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+        }
+
+        .orb-chip small {
+          font-size: 0.7rem;
+          color: var(--muted);
+        }
+
+        .orb-micro {
+          display: grid;
+          gap: 6px;
+          margin-top: 8px;
+          font-size: 0.74rem;
+          color: var(--muted);
+        }
+
+        .orb-micro-row {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+        }
+
+        .orb-meter {
+          flex: 1;
+          margin-left: 6px;
+          height: 4px;
+          border-radius: 999px;
+          background: rgba(15, 23, 42, 0.8);
+          overflow: hidden;
+        }
+
+        .orb-meter-fill {
+          height: 100%;
+          border-radius: inherit;
+          background: linear-gradient(90deg, #22c55e, #eab308, #f97316);
+          width: 78%;
+        }
+
+        /* Sections */
+        section {
+          border-radius: var(--radius-lg);
+          padding: 18px 18px 16px;
+          background: radial-gradient(circle at top left, rgba(30, 64, 175, 0.25), rgba(15, 23, 42, 0.98));
+          border: 1px solid var(--border);
+          box-shadow: 0 14px 38px rgba(15, 23, 42, 0.8);
+          position: relative;
+          overflow: hidden;
+        }
+
+        section::before {
+          content: "";
+          position: absolute;
+          inset: 0;
+          opacity: 0.18;
+          background-image: radial-gradient(circle at 0 0, rgba(148, 163, 184, 0.6) 0, transparent 55%), radial-gradient(circle at 100% 0, rgba(56, 189, 248, 0.9) 0, transparent 60%);
+          pointer-events: none;
+          mix-blend-mode: screen;
+        }
+
+        section > * {
+          position: relative;
+          z-index: 1;
+        }
+
+        section h2 {
+          margin: 0 0 4px;
+          font-size: 1.1rem;
+          display: flex;
+          align-items: baseline;
+          gap: 10px;
+        }
+
+        section h2 span.kicker {
+          font-size: 0.74rem;
+          text-transform: uppercase;
+          letter-spacing: 0.16em;
+          color: var(--muted);
+        }
+
+        section h2 span.title-main {
+          font-weight: 600;
+        }
+
+        .section-sub {
+          font-size: 0.84rem;
+          color: var(--muted);
+          margin-bottom: 10px;
+        }
+
+        .chips-row {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 6px;
+          margin-bottom: 8px;
+        }
+
+        .chip {
+          border-radius: 999px;
+          font-size: 0.74rem;
+          padding: 3px 9px;
+          background: rgba(15, 23, 42, 0.95);
+          border: 1px solid rgba(148, 163, 184, 0.4);
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+        }
+
+        .chip-dot {
+          width: 7px;
+          height: 7px;
+          border-radius: 999px;
+          background: var(--accent);
+        }
+
+        .grid-2 {
+          margin-top: 8px;
+          display: grid;
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+          gap: 12px;
+        }
+
+        @media (max-width: 720px) {
+          .grid-2 {
+            grid-template-columns: minmax(0, 1fr);
+          }
+        }
+
+        .card {
+          border-radius: 14px;
+          padding: 10px 11px;
+          background: rgba(15, 23, 42, 0.94);
+          border: 1px solid rgba(148, 163, 184, 0.35);
+          font-size: 0.82rem;
+        }
+
+        .card h3 {
+          margin: 0 0 4px;
+          font-size: 0.88rem;
+          display: flex;
+          align-items: center;
+          gap: 8px;
+        }
+
+        .card h3 span.icon {
+          font-size: 0.95rem;
+        }
+
+        .card p {
+          margin: 0 0 4px;
+          color: var(--muted);
+        }
+
+        .card ul {
+          margin: 4px 0 0 14px;
+          padding: 0;
+          color: var(--text);
+        }
+
+        .card ul li {
+          margin-bottom: 2px;
+        }
+
+        .badge-row {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 6px;
+          margin-top: 6px;
+          font-size: 0.74rem;
+        }
+
+        .badge {
+          padding: 3px 8px;
+          border-radius: 999px;
+          border: 1px dashed rgba(148, 163, 184, 0.6);
+          color: var(--muted);
+        }
+
+        .code-pill {
+          font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+          font-size: 0.75rem;
+          background: rgba(15, 23, 42, 0.9);
+          border-radius: 999px;
+          padding: 3px 8px;
+          border: 1px solid rgba(148, 163, 184, 0.5);
+        }
+
+        .section-footer {
+          margin-top: 10px;
+          border-top: 1px dashed rgba(148, 163, 184, 0.4);
+          padding-top: 8px;
+          font-size: 0.76rem;
+          color: var(--muted);
+          display: flex;
+          flex-wrap: wrap;
+          gap: 10px;
+          justify-content: space-between;
+        }
+
+        .section-footer span strong {
+          color: #e5e7eb;
+        }
+
+        .section-footer small {
+          font-size: 0.72rem;
+        }
+
+        /* Small fade for bottom */
+        .bottom-fade {
+          position: fixed;
+          inset: auto 0 0 0;
+          height: 60px;
+          pointer-events: none;
+          background: linear-gradient(to top, rgba(0, 0, 0, 0.9), transparent);
+          opacity: 0.45;
+        }
+
+        .mini-grid {
+          display: grid;
+          grid-template-columns: repeat(3, minmax(0, 1fr));
+          gap: 8px;
+          margin-top: 6px;
+        }
+        @media (max-width: 900px) {
+          .mini-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+          }
+        }
+        @media (max-width: 600px) {
+          .mini-grid {
+            grid-template-columns: minmax(0, 1fr);
+          }
+        }
+
+        .tagline {
+          font-size: 0.78rem;
+          color: var(--muted);
+        }
+    </style>
+</head>
+<body>
+<!-- Top navigation -->
+<header class="topbar">
+    <div class="topbar-inner">
+        <div class="brand">
+            <div class="brand-logo"></div>
+            <div>
+                <div class="brand-title">Cloud Native &amp; Modern Architectures</div>
+                <div class="brand-sub">Dev(Sec)Ops • Cloud Native • Microservices • Service Mesh • Serverless</div>
+            </div>
+        </div>
+        <div class="top-badges">
+            <div class="pill">
+                <span class="pill-dot"></span>
+                <span>Cloud Native Ready</span>
+            </div>
+            <div class="pill">
+                <span>🚀 Dev(Sec)Ops &amp; SRE</span>
+            </div>
+        </div>
+    </div>
+</header>
+
+<main class="app">
+    <!-- Sidebar -->
+    <aside class="sidebar">
+        <div class="sidebar-title">
+            <span>Plan de la présentation</span>
+            <span class="sidebar-title-badge">Vue globale</span>
+        </div>
+        <ul class="toc">
+            <li><a href="#devops"><span class="icon">🔁</span> Démarche DevOps <small>(+ variantes)</small></a></li>
+            <li><a href="#devsecops-team"><span class="icon">👥</span> Équipe DevSecOps</a></li>
+            <li><a href="#devsecops-org"><span class="icon">🏢</span> Intégration entreprise</a></li>
+            <li><a href="#cicd"><span class="icon">🚚</span> Focus pipeline CI/CD</a></li>
+            <li><a href="#cloud-native"><span class="icon">☁️</span> Cloud Native</a></li>
+            <li><a href="#cncf"><span class="icon">🧩</span> CNCF &amp; écosystème</a></li>
+            <li><a href="#microservices"><span class="icon">🧱</span> Microservices &amp; patterns</a></li>
+            <li><a href="#service-mesh"><span class="icon">🕸️</span> Service Mesh</a></li>
+            <li><a href="#serverless"><span class="icon">⚡</span> Architectures Serverless</a></li>
+            <li><a href="#course-plan"><span class="icon">📅</span> Plan de cours</a></li>
+        </ul>
+    </aside>
+
+    <!-- Main content -->
+    <div class="main">
+
+        <!-- Hero -->
+        <section class="hero" id="intro">
+            <div class="hero-inner">
+                <div>
+                    <div class="hero-title">
+                        <span class="hero-gradient">DevOps, Cloud Native, Microservices, Service Mesh &amp; Serverless</span>
+                    </div>
+                    <p class="hero-subtitle">
+                        De la <strong>démarche DevOps / DevSecOps</strong> aux architectures <strong>Cloud Native</strong> :
+                        microservices, Service Mesh, Serverless et outillage moderne autour d’un pipeline CI/CD industrialisé.
+                    </p>
+                    <div class="hero-tags">
+                        <span><b>DevOps</b> &amp; DevSecOps</span>
+                        <span>GitOps &amp; MLOps</span>
+                        <span>Cloud Native &amp; CNCF</span>
+                        <span>Microservices &amp; DDD</span>
+                        <span>Service Mesh</span>
+                        <span>CI/CD &amp; Observabilité</span>
+                    </div>
+                </div>
+                <div class="hero-visual">
+                    <div class="orb">
+                        <div class="orb-glow"></div>
+                        <div class="orb-main">
+                            <div class="orb-title">
+                                <span>Carte mentale</span>
+                                <span class="orb-dot"></span>
+                            </div>
+                            <div class="orb-grid">
+                                <div class="orb-chip">
+                                    <span class="label">🔁 DevOps</span>
+                                    <small>Culture &amp; pipeline</small>
+                                </div>
+                                <div class="orb-chip">
+                                    <span class="label">🛡️ DevSecOps</span>
+                                    <small>Security by design</small>
+                                </div>
+                            </div>
+                            <div class="orb-grid" style="margin-top:8px;">
+                                <div class="orb-chip">
+                                    <span class="label">☁️ Cloud Native</span>
+                                    <small>K8s &amp; CNCF</small>
+                                </div>
+                                <div class="orb-chip">
+                                    <span class="label">⚡ Serverless</span>
+                                    <small>FaaS / BaaS</small>
+                                </div>
+                            </div>
+                            <div class="orb-micro">
+                                <div class="orb-micro-row">
+                                    <span>Observabilité &amp; SRE</span>
+                                    <div class="orb-meter">
+                                        <div class="orb-meter-fill"></div>
+                                    </div>
+                                </div>
+                                <div class="orb-micro-row">
+                                    <span>GitOps &amp; Automation</span>
+                                    <small>IaC • Policy as code</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- DevOps & variants -->
+        <section id="devops">
+            <h2>
+                <span class="kicker">0. Culture</span>
+                <span class="title-main">Démarche DevOps et ses variantes</span>
+            </h2>
+            <p class="section-sub">
+                DevOps n’est pas juste une toolchain : c’est une <strong>philosophie</strong> qui aligne développement,
+                opérations et métier, prolongée par DevSecOps, GitOps, MLOps…
+            </p>
+
+            <div class="chips-row">
+                <span class="chip"><span class="chip-dot"></span> Culture, automation, measurement, sharing</span>
+                <span class="chip"><span class="chip-dot"></span> DevSecOps / GitOps / MLOps</span>
+                <span class="chip"><span class="chip-dot"></span> Cycle de vie produit complet</span>
+            </div>
+
+            <div class="grid-2">
+                <div class="card">
+                    <h3><span class="icon">📌</span> Fondamentaux de la philosophie DevOps</h3>
+                    <p><strong>Pourquoi DevOps ?</strong></p>
+                    <ul>
+                        <li>Réduire le <strong>time-to-market</strong> et les temps de cycle.</li>
+                        <li>Améliorer la <strong>qualité</strong> (défauts, sécurité, disponibilité).</li>
+                        <li>Aligner les objectifs <strong>business &amp; technologiques</strong>.</li>
+                        <li>Passer de “silos” (Dev vs Ops) à une <strong>responsabilité partagée</strong>.</li>
+                    </ul>
+                    <p><strong>Cycle de vie DevOps</strong> (vue boucle infinie) :</p>
+                    <ul>
+                        <li><strong>Plan</strong> → <strong>Code</strong> → <strong>Build</strong> → <strong>Test</strong> → <strong>Release</strong> → <strong>Deploy</strong> → <strong>Operate</strong> → <strong>Monitor</strong> → feedback.</li>
+                        <li>Automatisation maximale à chaque étape.</li>
+                    </ul>
+                </div>
+
+                <div class="card">
+                    <h3><span class="icon">🌈</span> Variantes : DevSecOps, MLOps, GitOps...</h3>
+                    <ul>
+                        <li><strong>DevSecOps</strong> :
+                            <ul>
+                                <li>Intégration de la <strong>sécurité</strong> tout au long du pipeline (“shift-left security”).</li>
+                                <li>Scan de dépendances, d’images, IaC, tests DAST, policies.</li>
+                            </ul>
+                        </li>
+                        <li><strong>MLOps</strong> :
+                            <ul>
+                                <li>Application des principes DevOps aux <strong>modèles ML</strong> (data, training, serving).</li>
+                                <li>Traçabilité des données, versionning de modèles, déploiements contrôlés.</li>
+                            </ul>
+                        </li>
+                        <li><strong>GitOps</strong> :
+                            <ul>
+                                <li>Git comme <strong>source of truth</strong> pour infra &amp; déploiements.</li>
+                                <li>Opérateurs (Argo CD, Flux) qui appliquent la configuration depuis Git.</li>
+                            </ul>
+                        </li>
+                    </ul>
+                    <p class="tagline">
+                        Idée clé : <strong>mêmes principes</strong> (automatisation, feedback, répétabilité) appliqués à différents périmètres.
+                    </p>
+                </div>
+            </div>
+
+            <div class="grid-2" style="margin-top:10px;">
+                <div class="card">
+                    <h3><span class="icon">🛡️</span> Focus sur DevSecOps : apport par rapport à DevOps</h3>
+                    <p>
+                        DevSecOps = DevOps + <strong>sécurité intégrée</strong> dans la boucle :
+                    </p>
+                    <ul>
+                        <li>La sécurité n’est plus une étape finale, mais un <strong>critère de qualité</strong> continu.</li>
+                        <li>Automatisation des contrôles :
+                            <ul>
+                                <li>Scan de code (SAST), de dépendances (SCA), d’images, d’IaC.</li>
+                                <li>Tests dynamiques (DAST), fuzzing, sécurité des APIs.</li>
+                            </ul>
+                        </li>
+                        <li>Modèle <strong>zero trust</strong> : identités fortes, moindres privilèges, secrets gérés.</li>
+                        <li>Collaboration renforcée avec les équipes <strong>sécu / risk / conformité</strong>.</li>
+                    </ul>
+                </div>
+
+                <div class="card">
+                    <h3><span class="icon">🧰</span> Outils dans le cycle de vie DevSecOps</h3>
+                    <p><strong>Cartographie (exemples) :</strong></p>
+                    <ul>
+                        <li><strong>Plan</strong> : Jira, Azure Boards, GitLab Issues.</li>
+                        <li><strong>Code</strong> : GitLab/GitHub/Azure Repos, IDE, hooks, review.</li>
+                        <li><strong>Build &amp; Test</strong> : pipelines CI (GitLab CI, GitHub Actions, Azure Pipelines), tests unitaires &amp; intégration.</li>
+                        <li><strong>Sécurité</strong> : SonarQube, Snyk, Trivy, Checkov, OWASP ZAP…</li>
+                        <li><strong>Deploy</strong> : Argo CD, Flux, Helm, Terraform.</li>
+                        <li><strong>Run &amp; Monitor</strong> : Prometheus, Grafana, ELK/Loki, OpenTelemetry, outils APM.</li>
+                    </ul>
+                    <p><strong>Plateformes DevOps / DevSecOps</strong> :</p>
+                    <ul>
+                        <li><strong>GitLab DevOps Platform</strong> (SCM, CI/CD, sécurité, registry, monitoring).</li>
+                        <li><strong>Azure DevOps</strong> (Repos, Pipelines, Boards, Test Plans, Artifacts).</li>
+                        <li>GitHub + Actions + Advanced Security.</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="section-footer">
+                <span>🔁 <strong>DevOps</strong> = culture + pratiques + outils, étendue par DevSecOps, MLOps, GitOps.</span>
+                <span><small>Objectif : livrer <strong>vite</strong>, <strong>bien</strong> et <strong>sûr</strong>.</small></span>
+            </div>
+        </section>
+
+        <!-- DevSecOps Team & collaboration -->
+        <section id="devsecops-team">
+            <h2>
+                <span class="kicker">0.bis Organisation</span>
+                <span class="title-main">Collaboration au sein des équipes DevSecOps</span>
+            </h2>
+            <p class="section-sub">
+                Une transformation DevSecOps réussie repose autant sur les <strong>équipes</strong> et la <strong>gouvernance</strong>
+                que sur la technologie.
+            </p>
+
+            <div class="chips-row">
+                <span class="chip"><span class="chip-dot"></span> Rôles &amp; compétences</span>
+                <span class="chip"><span class="chip-dot"></span> Positionnement du client</span>
+                <span class="chip"><span class="chip-dot"></span> Animation &amp; outillage</span>
+            </div>
+
+            <div class="grid-2">
+                <div class="card">
+                    <h3><span class="icon">👥</span> Constitution de l’équipe</h3>
+                    <p><strong>Rôles typiques :</strong></p>
+                    <ul>
+                        <li><strong>Product Owner</strong> : priorise le backlog, porte la vision.</li>
+                        <li><strong>Dev</strong> (Backend / Front / Fullstack) : implémentent les features.</li>
+                        <li><strong>Ops / SRE</strong> : fiabilité, observabilité, capacité, disponibilité.</li>
+                        <li><strong>Security Engineer</strong> : politiques, outils DevSecOps, threat modeling.</li>
+                        <li><strong>Platform / Cloud Engineer</strong> : plateforme Kubernetes/Cloud, IaC.</li>
+                        <li>Éventuellement <strong>Data/ML Engineer</strong> en contexte MLOps.</li>
+                    </ul>
+                    <p><strong>Besoins techniques :</strong> cloud, conteneurs, pipelines CI/CD, sécurité applicative, scripting, culture produit.</p>
+                </div>
+
+                <div class="card">
+                    <h3><span class="icon">🔗</span> Intégration des rôles &amp; périmètre client</h3>
+                    <ul>
+                        <li>Équipe <strong>cross-fonctionnelle</strong> (feature team ou stream-aligned team).</li>
+                        <li>Rôle du <strong>client / métier</strong> :
+                            <ul>
+                                <li>Co-construction des besoins et des KPI.</li>
+                                <li>Participation aux rituels : démos, sprint reviews, ateliers.</li>
+                            </ul>
+                        </li>
+                        <li>Clarification des périmètres :
+                            <ul>
+                                <li>Qui décide des priorités ?</li>
+                                <li>Qui porte les risques (sécu, disponibilité) ?</li>
+                                <li>Quelles frontières avec les équipes centrales (infra, sécurité, réseau) ?</li>
+                            </ul>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="grid-2" style="margin-top:10px;">
+                <div class="card">
+                    <h3><span class="icon">🧩</span> Choix des outils de gestion d’équipe</h3>
+                    <p><strong>Outils collaboratifs :</strong></p>
+                    <ul>
+                        <li>Gestion de backlog &amp; tâches : Jira, GitLab, Azure Boards, Linear…</li>
+                        <li>Communication : Teams, Slack, mails, channels dédiés incidents / prod.</li>
+                        <li>Documentation : Confluence, Notion, GitLab/GitHub Wiki.</li>
+                    </ul>
+                    <p><strong>Bonnes pratiques :</strong></p>
+                    <ul>
+                        <li>Un <strong>espace unique</strong> pour la vérité (backlog, doc).</li>
+                        <li>Transparence sur les priorités et l’état de la plateforme.</li>
+                    </ul>
+                </div>
+
+                <div class="card">
+                    <h3><span class="icon">🎙️</span> Animation d’une équipe Dev(Sec)Ops</h3>
+                    <ul>
+                        <li>Rituels réguliers :
+                            <ul>
+                                <li>Daily, planning, rétro, démo.</li>
+                                <li>Post-mortems sans blâme après incidents.</li>
+                            </ul>
+                        </li>
+                        <li>Culture d’<strong>amélioration continue</strong> :
+                            <ul>
+                                <li>Impliquer l’équipe dans le design du pipeline &amp; des dashboards.</li>
+                                <li>Expérimentations contrôlées, feature flags.</li>
+                            </ul>
+                        </li>
+                        <li>Partage de connaissance :
+                            <ul>
+                                <li>Guildes/chapters DevOps, brown bag sessions, communautés internes.</li>
+                            </ul>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="section-footer">
+                <span>👥 <strong>Le facteur clé</strong> : une équipe pluridisciplinaire, responsabilisée et bien outillée.</span>
+                <span><small>DevSecOps est avant tout une <strong>façon de travailler ensemble</strong>.</small></span>
+            </div>
+        </section>
+
+        <!-- DevSecOps in the organisation -->
+        <section id="devsecops-org">
+            <h2>
+                <span class="kicker">0.ter Transformation</span>
+                <span class="title-main">Intégration Dev(Sec)Ops dans l’entreprise</span>
+            </h2>
+            <p class="section-sub">
+                Comment ancrer Dev(Sec)Ops de manière durable : indicateurs, gouvernance et roadmap de transition.
+            </p>
+
+            <div class="chips-row">
+                <span class="chip"><span class="chip-dot"></span> Indicateurs clés</span>
+                <span class="chip"><span class="chip-dot"></span> Roadmap de transition</span>
+                <span class="chip"><span class="chip-dot"></span> Gouvernance &amp; adoption</span>
+            </div>
+
+            <div class="grid-2">
+                <div class="card">
+                    <h3><span class="icon">📊</span> Indicateurs clés (KPI DevOps / DevSecOps)</h3>
+                    <p><strong>KPIs de livraison (type DORA) :</strong></p>
+                    <ul>
+                        <li><strong>Lead time</strong> des changements (idée → prod).</li>
+                        <li><strong>Fréquence de déploiement</strong> (par jour/semaine/mois).</li>
+                        <li><strong>Taux d’échec</strong> des changements (rollback, incidents).</li>
+                        <li><strong>MTTR</strong> (Mean Time To Restore) après incident.</li>
+                    </ul>
+                    <p><strong>KPIs de sécurité :</strong></p>
+                    <ul>
+                        <li>Nombre de vulnérabilités ouvertes (par criticité) &amp; temps de correction.</li>
+                        <li>Taux de pipelines “verts” (tests + scans).</li>
+                    </ul>
+                    <p><strong>KPIs de satisfaction :</strong> feedback métier, NPS interne, satisfaction de l’équipe.</p>
+                </div>
+
+                <div class="card">
+                    <h3><span class="icon">🗺️</span> Roadmap de transition Dev(Sec)Ops</h3>
+                    <ul>
+                        <li><strong>Étape 1 : Diagnostic</strong>
+                            <ul>
+                                <li>Cartographie de l’existant (processus, outils, organisation).</li>
+                                <li>Identification des “quick wins” et des gros irritants.</li>
+                            </ul>
+                        </li>
+                        <li><strong>Étape 2 : MVP DevOps</strong>
+                            <ul>
+                                <li>Un premier produit/équipe pilote.</li>
+                                <li>Mise en place d’un pipeline CI/CD de référence.</li>
+                            </ul>
+                        </li>
+                        <li><strong>Étape 3 : Industrialisation</strong>
+                            <ul>
+                                <li>Standardisation de la toolchain, documentation.</li>
+                                <li>Plateforme partagée (p. ex. plateforme Kubernetes + GitOps).</li>
+                            </ul>
+                        </li>
+                        <li><strong>Étape 4 : Scale &amp; amélioration continue</strong>
+                            <ul>
+                                <li>Extension à d’autres projets.</li>
+                                <li>Suivi des KPIs, ajustements réguliers.</li>
+                            </ul>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="section-footer">
+                <span>🏢 <strong>But</strong> : faire de Dev(Sec)Ops un <strong>standard d’entreprise</strong>, pas un projet isolé.</span>
+                <span><small>Le succès se mesure en <strong>impacts business</strong>, pas en nombre d’outils déployés.</small></span>
+            </div>
+        </section>
+
+        <!-- CI/CD focus -->
+        <section id="cicd">
+            <h2>
+                <span class="kicker">0.quater Pipeline</span>
+                <span class="title-main">Focus sur le pipeline CI/CD</span>
+            </h2>
+            <p class="section-sub">
+                Le pipeline CI/CD est la colonne vertébrale de DevOps : automatisation du build, des tests, de la sécurité et des déploiements.
+            </p>
+
+            <div class="chips-row">
+                <span class="chip"><span class="chip-dot"></span> CI vs CD (Delivery / Deployment)</span>
+                <span class="chip"><span class="chip-dot"></span> Risques &amp; bonnes pratiques</span>
+                <span class="chip"><span class="chip-dot"></span> Premier pipeline concret</span>
+            </div>
+
+            <div class="grid-2">
+                <div class="card">
+                    <h3><span class="icon">🔍</span> Intégration continue, livraison continue, déploiement continu</h3>
+                    <p><strong>Intégration continue (CI)</strong> :</p>
+                    <ul>
+                        <li>Chaque commit déclenche un <strong>build</strong> + <strong>tests automatisés</strong>.</li>
+                        <li>Détecter les problèmes le plus tôt possible.</li>
+                    </ul>
+                    <p><strong>Livraison continue (CD - Continuous Delivery)</strong> :</p>
+                    <ul>
+                        <li>Le système est <strong>toujours dans un état déployable</strong>.</li>
+                        <li>Le déploiement en prod reste un <strong>acte contrôlé</strong> (validation manuelle).</li>
+                    </ul>
+                    <p><strong>Déploiement continu (CD - Continuous Deployment)</strong> :</p>
+                    <ul>
+                        <li>Chaque changement validé par la pipeline est <strong>déployé automatiquement</strong> en prod.</li>
+                        <li>Nécessite un niveau de maturité élevé (tests, observabilité, rollback faciles).</li>
+                    </ul>
+                </div>
+
+                <div class="card">
+                    <h3><span class="icon">⚠️</span> Risques &amp; bonnes pratiques</h3>
+                    <p><strong>Risques :</strong></p>
+                    <ul>
+                        <li>Pipeline lente → frein à la productivité.</li>
+                        <li>Manque de tests → bugs qui passent en prod plus vite.</li>
+                        <li>Mauvaise gestion des secrets → risques de fuite.</li>
+                        <li>Couplage fort avec l’infra → pipeline fragile.</li>
+                    </ul>
+                    <p><strong>Bonnes pratiques :</strong></p>
+                    <ul>
+                        <li>Pipeline <strong>rapide</strong> (feedback < 10 min pour la CI de base).</li>
+                        <li>Suite de tests <strong>stratifiée</strong> (unitaires rapides, intégration, e2e ciblés).</li>
+                        <li>Gestion sécurisée des secrets (vault, key-vault, variables protégées).</li>
+                        <li>Utiliser des environnements éphémères pour les tests (review apps).</li>
+                        <li>Modéliser les déploiements (blue/green, canary, feature flags).</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="grid-2" style="margin-top:10px;">
+                <div class="card">
+                    <h3><span class="icon">🧪</span> Installation / manipulations de base</h3>
+                    <p>Exemple de démarche générique :</p>
+                    <ul>
+                        <li>1. Créer un <strong>repo Git</strong> (GitLab, GitHub, Azure Repos…).</li>
+                        <li>2. Ajouter un fichier <strong>pipeline</strong> :
+                            <ul>
+                                <li>.gitlab-ci.yml, .github/workflows/*.yml, azure-pipelines.yml…</li>
+                            </ul>
+                        </li>
+                        <li>3. Définir des jobs :
+                            <ul>
+                                <li>build → test → analyse qualité / sécurité → packaging → déploiement.</li>
+                            </ul>
+                        </li>
+                        <li>4. Branch strategy :
+                            <ul>
+                                <li>main/trunk + feature branches, pull/merge requests avec validations obligatoires.</li>
+                            </ul>
+                        </li>
+                        <li>5. Connecter le pipeline à l’environnement cible (cluster K8s, PaaS, Serverless…).</li>
+                    </ul>
+                </div>
+
+                <div class="card">
+                    <h3><span class="icon">🧬</span> Cartographie type d’un pipeline DevSecOps</h3>
+                    <div class="mini-grid">
+                        <div class="badge">Plan &amp; Code<br><small>Backlog, branches, MR/PR</small></div>
+                        <div class="badge">Build &amp; Test<br><small>CI, tests, couverture</small></div>
+                        <div class="badge">Scan sécurité<br><small>SAST, SCA, secrets, IaC</small></div>
+                        <div class="badge">Package &amp; Store<br><small>Images, artifacts</small></div>
+                        <div class="badge">Deploy &amp; Verify<br><small>CD, smoke tests</small></div>
+                        <div class="badge">Run &amp; Observe<br><small>logs, métriques, traces</small></div>
+                    </div>
+                    <p class="tagline" style="margin-top:6px;">
+                        L’ensemble du pipeline est versionné, testé et observé comme un <strong>produit</strong> à part entière.
+                    </p>
+                </div>
+            </div>
+
+            <div class="section-footer">
+                <span>🚚 <strong>Le pipeline CI/CD</strong> est le cœur opérationnel de Dev(Sec)Ops.</span>
+                <span><small>Il porte la qualité, la sécurité et la vitesse de livraison.</small></span>
+            </div>
+        </section>
+
+        <!-- Cloud Native -->
+        <section id="cloud-native">
+            <h2>
+                <span class="kicker">1. Fondations</span>
+                <span class="title-main">Cloud Native Development</span>
+            </h2>
+            <p class="section-sub">
+                Comment concevoir des applications pensées dès le départ pour le cloud : résilientes, scalables, observables
+                et automatisables.
+            </p>
+
+            <div class="chips-row">
+                <span class="chip"><span class="chip-dot"></span> Conteneurs &amp; orchestrateurs</span>
+                <span class="chip"><span class="chip-dot"></span> Infrastructure as Code</span>
+                <span class="chip"><span class="chip-dot"></span> CI/CD &amp; Dev(Sec)Ops</span>
+            </div>
+
+            <div class="grid-2">
+                <div class="card">
+                    <h3><span class="icon">📌</span> Définition d’applications / architectures Cloud Native</h3>
+                    <p>
+                        Une application Cloud Native est conçue pour tirer parti des caractéristiques du cloud :
+                    </p>
+                    <ul>
+                        <li>Basée sur des <strong>services faiblement couplés</strong> (souvent des microservices).</li>
+                        <li>Déployée sur une <strong>infrastructure élastique</strong> (scaling automatique, horizontale).</li>
+                        <li><strong>Conteneurisée</strong>, orchestrée (Kubernetes &amp; co).</li>
+                        <li>Pilotée par <strong>DevOps / GitOps</strong>, CI/CD, IaC.</li>
+                        <li>Observabilité intégrée (logs, métriques, traces distribuées).</li>
+                    </ul>
+                </div>
+
+                <div class="card">
+                    <h3><span class="icon">⚙️</span> Contraintes &amp; exigences des applications Cloud Natives</h3>
+                    <p>
+                        Les principales contraintes à anticiper :
+                    </p>
+                    <ul>
+                        <li><strong>Éphémérité</strong> des instances (stateless, config externe, stockage persistant géré).</li>
+                        <li><strong>Résilience</strong> : tolérance aux pannes, auto-healing, retries, timeouts.</li>
+                        <li><strong>Sécurité</strong> : identité de service, chiffrement, secrets management.</li>
+                        <li><strong>Multi-environnements</strong> : dev, test, prod, multi-cloud / hybride.</li>
+                        <li><strong>Observabilité</strong> : SLO, SLIs, alerte sur symptômes plutôt que causes supposées.</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="grid-2" style="margin-top:10px;">
+                <div class="card">
+                    <h3><span class="icon">🤝</span> Lien avec Dev(Sec)Ops</h3>
+                    <p>
+                        Cloud Native et Dev(Sec)Ops sont intimement liés :
+                    </p>
+                    <ul>
+                        <li>Livraison continue via <strong>pipelines CI/CD</strong> (build, tests, scans, déploiement).</li>
+                        <li><strong>IaC</strong> (Terraform, Ansible, Helm…) pour versionner l’infrastructure.</li>
+                        <li>Automatisation des <strong>contrôles de sécurité</strong> (SAST, DAST, scans d’images).</li>
+                        <li>Culture de collaboration dev / ops / sécurité dès la conception.</li>
+                    </ul>
+                </div>
+
+                <div class="card">
+                    <h3><span class="icon">📈</span> Rôle de SRE (Site Reliability Engineering)</h3>
+                    <p>
+                        Le SRE industrialise la fiabilité des systèmes Cloud Native :
+                    </p>
+                    <ul>
+                        <li>Définition de <strong>SLO / SLI</strong> (latence, taux d’erreur, disponibilité, saturation).</li>
+                        <li>Gestion des <strong>erreur budgets</strong> pour équilibrer innovation et stabilité.</li>
+                        <li>Automatisation des tâches répétitives (runbooks, auto-remédiation).</li>
+                        <li>Post-mortems sans blâme pour améliorer en continu la plateforme.</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="section-footer">
+                <span>🎯 <strong>Objectif</strong> : concevoir des systèmes prêts pour le cloud (scalables, observables, sécurisés).</span>
+                <span><small>Référence : principes 12-factor app, CNCF, Dev(Sec)Ops &amp; SRE.</small></span>
+            </div>
+        </section>
+
+        <!-- CNCF -->
+        <section id="cncf">
+            <h2>
+                <span class="kicker">2. Écosystème</span>
+                <span class="title-main">CNCF &amp; projets Cloud Native</span>
+            </h2>
+            <p class="section-sub">
+                La Cloud Native Computing Foundation fédère l’écosystème open source autour des conteneurs, de l’orchestration
+                et de l’observabilité.
+            </p>
+
+            <div class="chips-row">
+                <span class="chip"><span class="chip-dot"></span> Fondation neutre &amp; open source</span>
+                <span class="chip"><span class="chip-dot"></span> Landscape Cloud Native</span>
+                <span class="chip"><span class="chip-dot"></span> Projets incubés &amp; gradués</span>
+            </div>
+
+            <div class="grid-2">
+                <div class="card">
+                    <h3><span class="icon">🏛️</span> Présentation de la Cloud Native Computing Foundation</h3>
+                    <p>
+                        La CNCF :
+                    </p>
+                    <ul>
+                        <li>Fait partie de la <strong>Linux Foundation</strong>.</li>
+                        <li>Héberge et gouverne de nombreux projets Cloud Native (Kubernetes, Prometheus, Envoy…).</li>
+                        <li>Fournit un <strong>landscape</strong> de l’écosystème (compute, storage, network, observability…).</li>
+                        <li>Propose des <strong>certifications</strong> (CKA, CKAD, CKS…) et des bonnes pratiques.</li>
+                    </ul>
+                </div>
+
+                <div class="card">
+                    <h3><span class="icon">⭐</span> Projets les plus importants de la CNCF</h3>
+                    <ul>
+                        <li><strong>Kubernetes</strong> : orchestrateur de conteneurs.</li>
+                        <li><strong>Prometheus</strong> &amp; <strong>Alertmanager</strong> : métriques et alerting.</li>
+                        <li><strong>Envoy</strong>, <strong>Linkerd</strong>, <strong>Istio</strong> : proxies &amp; service mesh.</li>
+                        <li><strong>gRPC</strong> : RPC performant, HTTP/2.</li>
+                        <li><strong>Fluentd / Fluent Bit</strong>, <strong>OpenTelemetry</strong> : logs &amp; traces.</li>
+                    </ul>
+                    <div class="badge-row">
+                        <span class="badge">Graduated</span>
+                        <span class="badge">Incubating</span>
+                        <span class="badge">Sandbox</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="grid-2" style="margin-top:10px;">
+                <div class="card">
+                    <h3><span class="icon">🧱</span> Écosystème en couches (vue simplifiée)</h3>
+                    <ul>
+                        <li><strong>Infrastructure</strong> : Cloud providers (IaaS), réseau, stockage.</li>
+                        <li><strong>Provisionnement / IaC</strong> : Ansible, Terraform, Helm, Crossplane…</li>
+                        <li><strong>Runtime</strong> : conteneurs (Docker, containerd, CRI-O).</li>
+                        <li><strong>Orchestration</strong> : Kubernetes, Nomad, etc.</li>
+                        <li><strong>Service Mesh &amp; réseau</strong> : Istio, Linkerd, Cilium…</li>
+                        <li><strong>Observabilité</strong> : Prometheus, Loki, Tempo, OpenTelemetry…</li>
+                    </ul>
+                </div>
+
+                <div class="card">
+                    <h3><span class="icon">🛠️</span> Technologies associées (exemples)</h3>
+                    <ul>
+                        <li><strong>Ansible</strong> : automatisation &amp; configuration.</li>
+                        <li><strong>Docker</strong> : image &amp; conteneur.</li>
+                        <li><strong>Kubernetes</strong> : scheduling, scaling, self-healing.</li>
+                        <li><strong>Istio</strong> : service mesh (trafic, sécurité, observabilité).</li>
+                        <li><strong>Argo / Flux</strong> : GitOps pour Kubernetes.</li>
+                    </ul>
+                    <p style="margin-top:4px;">
+                        L’idée : composer une <strong>plateforme Cloud Native</strong> à partir de ces briques.
+                    </p>
+                </div>
+            </div>
+
+            <div class="section-footer">
+                <span>🧭 <strong>Rôle de la CNCF</strong> : donner un cadre neutre, ouvert et interopérable.</span>
+                <span><small>Focus : Kubernetes au centre, entouré d’un riche écosystème.</small></span>
+            </div>
+        </section>
+
+        <!-- Microservices -->
+        <section id="microservices">
+            <h2>
+                <span class="kicker">3. Architecture</span>
+                <span class="title-main">Mise en place de services cloud en microservices</span>
+            </h2>
+            <p class="section-sub">
+                Du style architectural microservices aux patterns d’implémentation, en passant par les frameworks et les
+                mécanismes de communication et de sécurité.
+            </p>
+
+            <div class="chips-row">
+                <span class="chip"><span class="chip-dot"></span> Microservices &amp; DDD</span>
+                <span class="chip"><span class="chip-dot"></span> REST / gRPC / Events</span>
+                <span class="chip"><span class="chip-dot"></span> Patterns de résilience</span>
+            </div>
+
+            <div class="grid-2">
+                <div class="card">
+                    <h3><span class="icon">🧱</span> Style architectural microservices</h3>
+                    <p>
+                        Principe : décomposer le SI en petits services autonomes, chacun responsable d’un <strong>capteur fonctionnel
+                        cohérent</strong>.
+                    </p>
+                    <ul>
+                        <li><strong>Services indépendants</strong>, déployables séparément.</li>
+                        <li>Possèdent leur <strong>propre stockage</strong> (pas de base de données partagée).</li>
+                        <li>Communiquent via des <strong>APIs bien définies</strong>.</li>
+                        <li>Permettent un <strong>scaling ciblé</strong> par domaine.</li>
+                    </ul>
+                </div>
+
+                <div class="card">
+                    <h3><span class="icon">🧭</span> Bounded Context (Domain-Driven Design)</h3>
+                    <p>
+                        Un microservice = généralement un <strong>bounded context</strong> :
+                    </p>
+                    <ul>
+                        <li>Limite claire dans le langage métier et les règles de gestion.</li>
+                        <li>Modèle de données <strong>spécifique</strong>, non partagé.</li>
+                        <li>Interfaces explicites avec les autres contextes (APIs, events).</li>
+                        <li>Évite le “gros monolithe distribué”.</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="grid-2" style="margin-top:10px;">
+                <div class="card">
+                    <h3><span class="icon">🔌</span> Standards de communication interservices</h3>
+                    <ul>
+                        <li><strong>REST</strong> (HTTP/JSON) : simple, largement supporté, cache HTTP.</li>
+                        <li><strong>gRPC</strong> (HTTP/2 + Protobuf) : performant, contrat typé, streaming.</li>
+                        <li><strong>Événements</strong> (event-driven) :
+                            <ul>
+                                <li>Pub/Sub, event streaming (Kafka, Pulsar…).</li>
+                                <li>Découplage fort, asynchrone.</li>
+                            </ul>
+                        </li>
+                    </ul>
+                    <div class="badge-row">
+                        <span class="code-pill">REST</span>
+                        <span class="code-pill">gRPC</span>
+                        <span class="code-pill">events</span>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h3><span class="icon">🧰</span> Frameworks microservices (ex : Spring Boot &amp; Cloud)</h3>
+                    <ul>
+                        <li><strong>Spring Boot</strong> : microservice ready (auto-config, Actuator).</li>
+                        <li><strong>Spring Cloud</strong> : patterns distribué (config, discovery, gateway, resilience…).</li>
+                        <li>Autres exemples : Micronaut, Quarkus, Node.js (NestJS), .NET (Minimal APIs, Dapr…).</li>
+                        <li>Intégration facile avec <strong>Docker/Kubernetes</strong> (healthchecks, probes, config externe).</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="grid-2" style="margin-top:10px;">
+                <div class="card">
+                    <h3><span class="icon">📐</span> Patterns d’architecture microservices</h3>
+                    <ul>
+                        <li><strong>API Gateway</strong> :
+                            <ul>
+                                <li>Point d’entrée unique (routing, auth, rate-limiting).</li>
+                            </ul>
+                        </li>
+                        <li><strong>Résilience / Circuit Breaker</strong> :
+                            <ul>
+                                <li>Évite l’effet domino en cas de panne.</li>
+                            </ul>
+                        </li>
+                        <li><strong>Découverte de services</strong> :
+                            <ul>
+                                <li>DNS, Service Registry, Service Mesh.</li>
+                            </ul>
+                        </li>
+                        <li><strong>Centralisation des logs</strong> :
+                            <ul>
+                                <li>ELK, Loki, etc.</li>
+                            </ul>
+                        </li>
+                        <li><strong>Event streaming</strong> (Kafka) &amp; patterns <strong>CQRS</strong>, <strong>SAGA</strong>
+                            pour la cohérence des données.</li>
+                    </ul>
+                </div>
+
+                <div class="card">
+                    <h3><span class="icon">🔐</span> Introduction à la sécurité</h3>
+                    <ul>
+                        <li><strong>Protection HTTPS de l’API Gateway</strong> :
+                            <ul>
+                                <li>Certificats, TLS termination, HSTS, WAF.</li>
+                            </ul>
+                        </li>
+                        <li><strong>Sécurisation des endpoints avec JWT</strong> :
+                            <ul>
+                                <li>OIDC / OAuth2, scopes, rôles, propagation du token.</li>
+                            </ul>
+                        </li>
+                        <li>Zero-trust : <strong>authentifier &amp; autoriser</strong> chaque appel (entre services inclus).</li>
+                        <li>Gestion des secrets : Vault, Secrets Kubernetes, KMS Cloud.</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="section-footer">
+                <span>🧩 <strong>Vision</strong> : une constellation de services indépendants, robustes, sécurisés et observables.</span>
+                <span><small>Le service mesh (section suivante) complète ces patterns au niveau réseau.</small></span>
+            </div>
+        </section>
+
+        <!-- Service Mesh -->
+        <section id="service-mesh">
+            <h2>
+                <span class="kicker">4. Réseau applicatif</span>
+                <span class="title-main">Service Mesh</span>
+            </h2>
+            <p class="section-sub">
+                Un service mesh gère la communication est/ouest entre microservices : trafic, sécurité, résilience et
+                observabilité, sans changer le code des applications.
+            </p>
+
+            <div class="chips-row">
+                <span class="chip"><span class="chip-dot"></span> Sidecar proxies</span>
+                <span class="chip"><span class="chip-dot"></span> Control plane / Data plane</span>
+                <span class="chip"><span class="chip-dot"></span> Mutual TLS &amp; policies</span>
+            </div>
+
+            <div class="grid-2">
+                <div class="card">
+                    <h3><span class="icon">🎯</span> Intérêt &amp; concepts d’un service mesh</h3>
+                    <p>Un service mesh apporte :</p>
+                    <ul>
+                        <li><strong>Gestion du trafic</strong> :
+                            <ul>
+                                <li>Canary, blue/green, A/B testing.</li>
+                                <li>Retries, timeouts, circuit breakers.</li>
+                            </ul>
+                        </li>
+                        <li><strong>Sécurité</strong> :
+                            <ul>
+                                <li>mTLS entre services, identité forte.</li>
+                                <li>Policies d’accès (RBAC, AuthZ).</li>
+                            </ul>
+                        </li>
+                        <li><strong>Observabilité</strong> :
+                            <ul>
+                                <li>Métriques réseau, traces, dashboards.</li>
+                            </ul>
+                        </li>
+                    </ul>
+                </div>
+
+                <div class="card">
+                    <h3><span class="icon">🏗️</span> Architecture : sidecar, control &amp; data plane</h3>
+                    <ul>
+                        <li><strong>Sidecar proxy</strong> (data plane) :
+                            <ul>
+                                <li>Envoy, Linkerd proxy… injecté à côté de chaque pod.</li>
+                                <li>Intercepte et gère le trafic entrant / sortant.</li>
+                            </ul>
+                        </li>
+                        <li><strong>Control plane</strong> :
+                            <ul>
+                                <li>Istio, Consul, Kuma… gèrent la configuration, les policies, la découverte.</li>
+                                <li>Distribue les règles aux data planes.</li>
+                            </ul>
+                        </li>
+                        <li>Intégration forte avec <strong>Kubernetes</strong> (CRDs, labels, annotations).</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="grid-2" style="margin-top:10px;">
+                <div class="card">
+                    <h3><span class="icon">🚀</span> Déploiement du service mesh</h3>
+                    <ul>
+                        <li>Installation sur le cluster (Helm, opérateurs, profiles).</li>
+                        <li>Configuration de l’<strong>injection sidecar</strong> (namespace, labels).</li>
+                        <li>Définition des <strong>policies</strong> :
+                            <ul>
+                                <li>DestinationRules, VirtualServices (Istio), TrafficSplit (Linkerd)…</li>
+                            </ul>
+                        </li>
+                        <li>Intégration avec la chaîne d’observabilité (Prometheus, Grafana, Jaeger…).</li>
+                    </ul>
+                </div>
+
+                <div class="card">
+                    <h3><span class="icon">🛡️</span> Remplacement / renforcement de services existants</h3>
+                    <ul>
+                        <li>Complète ou remplace des fonctionnalités :
+                            <ul>
+                                <li>Résilience, retries, timeouts souvent gérés <strong>au niveau mesh</strong> plutôt que dans chaque service.</li>
+                                <li>mTLS géré automatiquement.</li>
+                            </ul>
+                        </li>
+                        <li>Permet de simplifier le code applicatif :
+                            <ul>
+                                <li>Focus sur le métier, pas sur la stack réseau.</li>
+                            </ul>
+                        </li>
+                        <li>Point central pour appliquer des <strong>politiques de sécurité homogènes</strong>.</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="section-footer">
+                <span>🕸️ <strong>Idée clé</strong> : déporter la logique réseau / sécurité transversale dans la plateforme.</span>
+                <span><small>Exemples : Istio, Linkerd, Consul Connect, Kuma, AWS App Mesh…</small></span>
+            </div>
+        </section>
+
+        <!-- Serverless -->
+        <section id="serverless">
+            <h2>
+                <span class="kicker">5. Modèles d’exécution</span>
+                <span class="title-main">Architectures Serverless</span>
+            </h2>
+            <p class="section-sub">
+                Serverless pousse encore plus loin l’abstraction de l’infrastructure : le développeur se concentre sur le code
+                et les événements, le cloud gère l’exécution.
+            </p>
+
+            <div class="chips-row">
+                <span class="chip"><span class="chip-dot"></span> FaaS (Functions as a Service)</span>
+                <span class="chip"><span class="chip-dot"></span> BaaS (Backend as a Service)</span>
+                <span class="chip"><span class="chip-dot"></span> Pay-per-use</span>
+            </div>
+
+            <div class="grid-2">
+                <div class="card">
+                    <h3><span class="icon">💡</span> Cas d’usage typiques</h3>
+                    <ul>
+                        <li>Traitement d’événements :
+                            <ul>
+                                <li>Fichiers déposés dans un bucket, messages dans une file, webhooks…</li>
+                            </ul>
+                        </li>
+                        <li>APIs légères ou endpoints temporaires.</li>
+                        <li>Jobs planifiés (cron serverless).</li>
+                        <li>Intégrations entre services cloud (glue code).</li>
+                    </ul>
+                </div>
+
+                <div class="card">
+                    <h3><span class="icon">⚖️</span> Principes, avantages &amp; inconvénients</h3>
+                    <ul>
+                        <li><strong>Principes</strong> :
+                            <ul>
+                                <li>Scalabilité automatique, granulaire.</li>
+                                <li>Facturation à l’usage (invocations, durée, mémoire).</li>
+                            </ul>
+                        </li>
+                        <li><strong>Avantages</strong> :
+                            <ul>
+                                <li>Pas de gestion de serveurs.</li>
+                                <li>Time-to-market rapide.</li>
+                            </ul>
+                        </li>
+                        <li><strong>Inconvénients</strong> :
+                            <ul>
+                                <li>Cold starts, limites de durée / mémoire.</li>
+                                <li>Risque de <strong>strong vendor lock-in</strong>.</li>
+                                <li>Observabilité &amp; debug parfois plus complexes.</li>
+                            </ul>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="grid-2" style="margin-top:10px;">
+                <div class="card">
+                    <h3><span class="icon">🧩</span> Concepts : FaaS vs BaaS</h3>
+                    <ul>
+                        <li><strong>FaaS (Function as a Service)</strong> :
+                            <ul>
+                                <li>On déploie du code (fonctions) déclenché par des événements.</li>
+                                <li>Ex : AWS Lambda, Azure Functions, Google Cloud Functions, Knative…</li>
+                            </ul>
+                        </li>
+                        <li><strong>BaaS (Backend as a Service)</strong> :
+                            <ul>
+                                <li>Services managés prêts à l’emploi (authentification, base NoSQL, messaging…).</li>
+                                <li>Ex : Firebase, Auth0, DynamoDB, API Gateway managée, etc.</li>
+                            </ul>
+                        </li>
+                        <li>Une architecture serverless combine souvent <strong>FaaS + BaaS</strong>.</li>
+                    </ul>
+                </div>
+
+                <div class="card">
+                    <h3><span class="icon">🌐</span> Principales solutions fournisseurs</h3>
+                    <ul>
+                        <li><strong>AWS</strong> :
+                            <ul>
+                                <li>AWS Lambda, API Gateway, DynamoDB, Step Functions…</li>
+                            </ul>
+                        </li>
+                        <li><strong>Azure</strong> :
+                            <ul>
+                                <li>Azure Functions, Logic Apps, Event Grid, Cosmos DB…</li>
+                            </ul>
+                        </li>
+                        <li><strong>Google Cloud</strong> :
+                            <ul>
+                                <li>Cloud Functions, Cloud Run, Pub/Sub, Firestore…</li>
+                            </ul>
+                        </li>
+                        <li><strong>On-prem / hybride</strong> :
+                            <ul>
+                                <li>OpenFaaS, Knative, OpenShift Serverless…</li>
+                            </ul>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="section-footer">
+                <span>⚡ <strong>But</strong> : se concentrer sur le métier, en déléguant au maximum la gestion de l’infrastructure.</span>
+                <span><small>Serverless complète les microservices &amp; le Cloud Native, il ne les remplace pas.</small></span>
+            </div>
+        </section>
+
+        <!-- Course plan -->
+        <section id="course-plan">
+            <h2>
+                <span class="kicker">6. Synthèse</span>
+                <span class="title-main">Programme – Plan de cours</span>
+            </h2>
+            <p class="section-sub">
+                Récapitulatif des grandes étapes du cours / formation, de l’introduction DevOps jusqu’aux architectures
+                avancées Cloud Native.
+            </p>
+
+            <div

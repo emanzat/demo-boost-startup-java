@@ -1,5 +1,17 @@
 on:
   workflow_call:
+    secrets:
+      DEPLOY_SERVER:
+        required: true
+      DEPLOY_SSH_USER:
+        required: true
+      DEPLOY_SSH_PRIVATE_KEY:
+        required: true
+      DEPLOY_SSH_PORT:
+        required: false
+      DOCKERHUB_USERNAME:
+        required: true
+
 jobs:
   deploy-production-server:
     name: Deploy to Production Server
@@ -8,7 +20,7 @@ jobs:
       - name: Deploy to server via SSH
         uses: appleboy/ssh-action@v1.0.3
         with:
-          host: ${{ env.DEPLOY_SERVER }}
+          host: ${{ secrets.DEPLOY_SERVER }}
           username: ${{ secrets.DEPLOY_SSH_USER }}
           key: ${{ secrets.DEPLOY_SSH_PRIVATE_KEY }}
           port: ${{ secrets.DEPLOY_SSH_PORT || 22 }}
@@ -22,4 +34,4 @@ jobs:
             docker image prune -af --filter "until=24h"
       - name: Verify deployment
         run: |
-          curl -f http://${{ env.DEPLOY_SERVER }}:8080/actuator/health
+          curl -f http://${{ secrets.DEPLOY_SERVER }}:8080/actuator/health

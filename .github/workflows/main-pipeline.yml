@@ -65,6 +65,12 @@ jobs:
       security-events: write
       contents: read
       actions: read
+    secrets:
+      DEPLOY_SERVER: ${{ secrets.DEPLOY_SERVER }}
+      DEPLOY_SSH_USER: ${{ secrets.DEPLOY_SSH_USER }}
+      DEPLOY_SSH_PRIVATE_KEY: ${{ secrets.DEPLOY_SSH_PRIVATE_KEY }}
+      DEPLOY_SSH_PORT: ${{ secrets.DEPLOY_SSH_PORT }}
+      DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
   send-notifications:
     needs: deploy-production-server
     uses: ./.github/workflows/send-notifications.yml
