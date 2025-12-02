@@ -35,3 +35,20 @@ jobs:
           exit-code: '1'
           ignore-unfixed: true
           severity: 'CRITICAL,HIGH'
+          ignorefile: .trivyignore
+      - name: Run Trivy vulnerability scanner (JSON)
+        uses: aquasecurity/trivy-action@0.27.0
+        with:
+          image-ref: demo-boost-startup-java:${{ github.sha }}
+          format: 'json'
+          output: 'trivy-results.json'
+          severity: 'CRITICAL,HIGH,MEDIUM'
+      - name: Extract CVE list from Trivy report
+        run: |
+          jq -r '.Results[].Vulnerabilities[].VulnerabilityID' trivy-results.json | sort | uniq > cve-list.txt
+          cat cve-list.txt
+      - name: Upload CVE list
+        uses: actions/upload-artifact@v4
+        with:
+          name: cve-list
+          path: cve-list.txt
