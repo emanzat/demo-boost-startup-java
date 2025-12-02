@@ -166,6 +166,23 @@ jobs:
           sarif_file: target/dependency-check-report.sarif
           category: owasp-dependency-check
 
+      # Trivy SCA (filesystem scan)
+      - name: Run Trivy SCA (filesystem scan)
+        uses: aquasecurity/trivy-action@0.27.0
+        with:
+          scan-type: 'fs'
+          format: 'json'
+          output: 'trivy-deps-report.json'
+          severity: 'CRITICAL,HIGH,MEDIUM'
+          ignore-unfixed: true
+
+      - name: Upload Trivy SCA report
+        uses: actions/upload-artifact@v4
+        with:
+          name: trivy-deps-report
+          path: trivy-deps-report.json
+          retention-days: 7
+
   # ==================== STAGE 5: SECURE IAC ====================
   iac-security:
     name: Secure IaC - Dockerfile Scan
