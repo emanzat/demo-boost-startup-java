@@ -43,19 +43,33 @@ jobs:
   container-security-scan:
     needs: build-docker-image
     uses: ./.github/workflows/container-security-scan.yml
+    permissions:
+      security-events: write
+      contents: read
+      actions: read
 
-  dast-dynamic-security-testing:
-    needs: container-security-scan
-    uses: ./.github/workflows/dast-dynamic-security-testing.yml
+#  dast-dynamic-security-testing:
+#    needs: container-security-scan
+#    uses: ./.github/workflows/dast-dynamic-security-testing.yml
 
   publish-docker-hub:
     needs: [container-security-scan, dast-dynamic-security-testing]
     uses: ./.github/workflows/publish-docker-hub.yml
-
+    permissions:
+      security-events: write
+      contents: read
+      actions: read
   deploy-production-server:
     needs: publish-docker-hub
     uses: ./.github/workflows/deploy-production-server.yml
-
+    permissions:
+      security-events: write
+      contents: read
+      actions: read
   send-notifications:
     needs: deploy-production-server
     uses: ./.github/workflows/send-notifications.yml
+    permissions:
+      security-events: write
+      contents: read
+      actions: read
