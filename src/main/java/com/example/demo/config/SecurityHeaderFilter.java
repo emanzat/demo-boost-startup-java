@@ -1,5 +1,6 @@
 package com.example.demo.config;
 import jakarta.servlet.*;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.stereotype.Component;
 import java.io.IOException;
@@ -11,7 +12,10 @@ public class SecurityHeaderFilter implements Filter {
     public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain)
             throws IOException, ServletException {
 
+        HttpServletRequest req = (HttpServletRequest) request;
         HttpServletResponse res = (HttpServletResponse) response;
+
+        String path = req.getRequestURI();
 
         // Empêche le MIME sniffing
         res.setHeader("X-Content-Type-Options", "nosniff");
@@ -25,10 +29,24 @@ public class SecurityHeaderFilter implements Filter {
         res.setHeader("X-Frame-Options", "DENY");
 
         // Headers de cache - ZAP Alert 10049
-        res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate, private");
-        res.setHeader("Pragma", "no-cache");
-        res.setHeader("Expires", "0");
+        // Autorise le cache uniquement pour les ressources statiques
+        if (isStaticResource(path)) {
+            // Ressources statiques : cache autorisé
+            res.setHeader("Cache-Control", "public, max-age=31536000, immutable");
+        } else {
+            // Pages dynamiques et API : pas de cache
+            res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate, private");
+            res.setHeader("Pragma", "no-cache");
+            res.setHeader("Expires", "0");
+        }
 
         chain.doFilter(request, response);
+    }
+
+    /**
+     * Détermine si le chemin correspond à une ressource statique
+     */
+    private boolean isStaticResource(String path) {
+        return path.matches(".+\\.(css|js|jpg|jpeg|png|gif|ico|svg|woff|woff2|ttf|eot)$");
     }
 }
