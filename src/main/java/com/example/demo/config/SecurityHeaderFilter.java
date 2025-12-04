@@ -29,12 +29,15 @@ public class SecurityHeaderFilter implements Filter {
         res.setHeader("X-Frame-Options", "DENY");
 
         // Headers de cache - ZAP Alert 10049
-        // Autorise le cache uniquement pour les ressources statiques
-        if (isStaticResource(path)) {
-            // Ressources statiques : cache autorisé
+        // Stratégie différenciée selon le type de contenu
+        if (isStaticAsset(path)) {
+            // Assets statiques (CSS, JS, images) : cache long (1 an)
             res.setHeader("Cache-Control", "public, max-age=31536000, immutable");
+        } else if (isPublicContent(path)) {
+            // Contenu public (/, robots.txt, sitemap.xml) : cache court (5 minutes)
+            res.setHeader("Cache-Control", "public, max-age=300");
         } else {
-            // Pages dynamiques et API : pas de cache
+            // Pages dynamiques et API : pas de cache (sécurité)
             res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate, private");
             res.setHeader("Pragma", "no-cache");
             res.setHeader("Expires", "0");
@@ -44,11 +47,17 @@ public class SecurityHeaderFilter implements Filter {
     }
 
     /**
-     * Détermine si le chemin correspond à une ressource statique
+     * Détermine si le chemin correspond à un asset statique (CSS, JS, images)
      */
-    private boolean isStaticResource(String path) {
-        return path.matches(".+\\.(css|js|jpg|jpeg|png|gif|ico|svg|woff|woff2|ttf|eot)$")
-            || path.equals("/")
+    private boolean isStaticAsset(String path) {
+        return path.matches(".+\\.(css|js|jpg|jpeg|png|gif|ico|svg|woff|woff2|ttf|eot)$");
+    }
+
+    /**
+     * Détermine si le chemin correspond à un contenu public non-sensible
+     */
+    private boolean isPublicContent(String path) {
+        return path.equals("/")
             || path.equals("/robots.txt")
             || path.equals("/sitemap.xml");
     }
