@@ -56,16 +56,23 @@ jobs:
         run: |
           timeout 90 sh -c 'until curl -f http://localhost:8080/actuator/health; do sleep 2; done'
 
+      - name: Create ZAP reports directory
+        run: |
+          mkdir -p ${{ github.workspace }}/zap-reports
+          chmod 777 ${{ github.workspace }}/zap-reports
+
       - name: Run OWASP ZAP DAST scan (Docker direct)
         run: |
           docker run --rm \
-            -v ${{ github.workspace }}:/zap/wrk/:rw \
+            --user $(id -u):$(id -g) \
+            -v ${{ github.workspace }}/zap-reports:/zap/wrk/:rw \
             --network=host \
             ghcr.io/zaproxy/zaproxy:stable \
             zap-baseline.py \
             -t http://localhost:8080 \
             -r zap-report.html \
-            -J zap-report.json
+            -J zap-report.json \
+            -w zap-report.md
         continue-on-error: true
 
       - name: Upload ZAP reports
@@ -74,8 +81,9 @@ jobs:
         with:
           name: zap-scan-reports
           path: |
-            zap-report.html
-            zap-report.json
+            zap-reports/zap-report.html
+            zap-reports/zap-report.json
+            zap-reports/zap-report.md
 
       - name: Stop test containers
         if: always()
