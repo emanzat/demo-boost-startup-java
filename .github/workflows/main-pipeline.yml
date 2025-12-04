@@ -49,7 +49,7 @@ jobs:
     secrets: inherit
 
   dast-dynamic-security-testing:
-    needs: build-and-scan-docker
+    needs: deploy-production-server
     uses: ./.github/workflows/dast-dynamic-security-testing.yml
 
   send-notifications:

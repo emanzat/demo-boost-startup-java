@@ -7,7 +7,6 @@ on:
         required: true
 jobs:
   publish-docker-hub:
-    name: Publication sur Docker Hub
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
