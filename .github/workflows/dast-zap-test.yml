@@ -59,13 +59,15 @@ jobs:
       - name: Create ZAP reports directory
         run: |
           mkdir -p ${{ github.workspace }}/zap-reports
-          chmod 777 ${{ github.workspace }}/zap-reports
+          mkdir -p /tmp/zap-home
+          chmod -R 777 ${{ github.workspace }}/zap-reports
+          chmod -R 777 /tmp/zap-home
 
       - name: Run OWASP ZAP DAST scan (Docker direct)
         run: |
           docker run --rm \
-            --user $(id -u):$(id -g) \
             -v ${{ github.workspace }}/zap-reports:/zap/wrk/:rw \
+            -v /tmp/zap-home:/home/zap:rw \
             --network=host \
             ghcr.io/zaproxy/zaproxy:stable \
             zap-baseline.py \
