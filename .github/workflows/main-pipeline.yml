@@ -43,15 +43,14 @@ jobs:
     needs: [build-and-scan-docker]
     uses: ./.github/workflows/publish-docker-hub.yml
     secrets: inherit
+  dast-dynamic-security-testing:
+    needs: publish-docker-hub
+    uses: ./.github/workflows/dast-dynamic-security-testing.yml
+    secrets: inherit
 
   deploy-production-server:
     needs: publish-docker-hub
     uses: ./.github/workflows/deploy-production-server.yml
-    secrets: inherit
-
-  dast-dynamic-security-testing:
-    needs: deploy-production-server
-    uses: ./.github/workflows/dast-dynamic-security-testing.yml
     secrets: inherit
 
   send-notifications:
