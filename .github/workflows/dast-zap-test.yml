@@ -56,7 +56,23 @@ jobs:
         run: |
           timeout 90 sh -c 'until curl -f http://localhost:8080/actuator/health; do sleep 2; done'
 
+      - name: ZAP Scan using Automation Framework
+        uses: zaproxy/action-af@v0.2.0
+        env:
+          TARGET_URL: 'http://localhost:8080'
+          #ZAP_AUTH_HEADER: Authorization
+          #ZAP_AUTH_HEADER_VALUE: xxx
+        with:
+          plan: '.github/workflows/zap/zap-env.yaml'
+          docker_env_vars: |
+            TARGET_URL
 
+      - name: 'Save Scan Artifact'
+        uses: actions/upload-artifact@v4
+        with:
+          name: dast.sarif
+          path: dast.sarif.json
+          retention-days: 30
 
 
 
