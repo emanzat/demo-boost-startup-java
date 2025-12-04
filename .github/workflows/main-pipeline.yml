@@ -20,6 +20,7 @@ jobs:
   code-quality-sast:
     needs: build-and-test
     uses: ./.github/workflows/code-quality-sast.yml
+    secrets: inherit
 
   secret-scanning:
     needs: build-and-test
@@ -36,7 +37,7 @@ jobs:
   build-and-scan-docker:
     needs: [code-quality-sast, secret-scanning, secure-iac-dockerfile-scan]
     uses: ./.github/workflows/build-docker-image.yml
-
+    secrets: inherit
 
   publish-docker-hub:
     needs: [build-and-scan-docker]
@@ -51,6 +52,7 @@ jobs:
   dast-dynamic-security-testing:
     needs: deploy-production-server
     uses: ./.github/workflows/dast-dynamic-security-testing.yml
+    secrets: inherit
 
   send-notifications:
     needs: deploy-production-server

@@ -1,5 +1,8 @@
 on:
   workflow_call:
+    secrets:
+      SEMGREP_APP_TOKEN:
+        required: false
 
 permissions:
   security-events: write

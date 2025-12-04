@@ -1,5 +1,9 @@
 on:
   workflow_call:
+    secrets:
+      DEPLOY_APPLI_NAME:
+        required: true
+
 jobs:
   dast-dynamic-security-testing:
     name: DAST - Dynamic Security Testing
