@@ -50,14 +50,15 @@ jobs:
         run: |
           timeout 90 sh -c 'until curl -f http://localhost:8080/actuator/health; do sleep 2; done'
       - name: Run OWASP ZAP DAST scan
-        uses: zaproxy/action-baseline@v0.12.0
+        uses: zaproxy/action-baseline@v0.13.0
         with:
+          token: ${{ github.token }}
+          docker_name: 'ghcr.io/zaproxy/zaproxy:stable'
           target: 'http://localhost:8080'
           rules_file_name: '.zap/rules.tsv'
-          cmd_options: '-a -j'
+          cmd_options: '-a'
           allow_issue_writing: false
           fail_action: false
-        continue-on-error: true
       - name: Stop test containers
         if: always()
         run: |
