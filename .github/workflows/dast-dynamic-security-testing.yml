@@ -10,6 +10,10 @@ on:
       MONGODB_COLLECTION_NAME:
         required: false
 
+permissions:
+  contents: read
+  actions: read
+
 jobs:
   dast-dynamic-security-testing:
     name: DAST - Dynamic Security Testing
@@ -53,7 +57,7 @@ jobs:
           cmd_options: '-a -j'
           allow_issue_writing: false
           fail_action: false
-          token: ''
+        continue-on-error: true
       - name: Stop test containers
         if: always()
         run: |
