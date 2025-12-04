@@ -1,0 +1,6 @@
+# Gitleaks ignore file
+# Documentation examples - not real secrets
+
+# SECRETS.md contains example SSH key format for documentation purposes
+tp/SECRETS.md:74
+tp/SECRETS.md:75
