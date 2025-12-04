@@ -16,11 +16,18 @@ public class SecurityHeaderFilter implements Filter {
         // Empêche le MIME sniffing
         res.setHeader("X-Content-Type-Options", "nosniff");
 
-        // Correction Spectre
+        // Correction Spectre - ZAP Alert 90004
         res.setHeader("Cross-Origin-Resource-Policy", "same-origin");
+        res.setHeader("Cross-Origin-Embedder-Policy", "require-corp");
+        res.setHeader("Cross-Origin-Opener-Policy", "same-origin");
 
-        // (Optionnel) Empêche les iframes (protection clickjacking)
+        // Empêche les iframes (protection clickjacking)
         res.setHeader("X-Frame-Options", "DENY");
+
+        // Headers de cache - ZAP Alert 10049
+        res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate, private");
+        res.setHeader("Pragma", "no-cache");
+        res.setHeader("Expires", "0");
 
         chain.doFilter(request, response);
     }
