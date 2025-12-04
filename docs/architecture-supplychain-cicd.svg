@@ -1,0 +1,293 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="1400" viewBox="0 0 1200 1400">
+    <defs>
+        <linearGradient id="successGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" style="stop-color:#2ea44f;stop-opacity:1" />
+            <stop offset="100%" style="stop-color:#238636;stop-opacity:1" />
+        </linearGradient>
+        <linearGradient id="warningGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" style="stop-color:#bf8700;stop-opacity:1" />
+            <stop offset="100%" style="stop-color:#9a6700;stop-opacity:1" />
+        </linearGradient>
+        <linearGradient id="infoGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" style="stop-color:#0969da;stop-opacity:1" />
+            <stop offset="100%" style="stop-color:#0550ae;stop-opacity:1" />
+        </linearGradient>
+        <filter id="shadow">
+            <feDropShadow dx="0" dy="2" stdDeviation="4" flood-opacity="0.15"/>
+        </filter>
+    </defs>
+
+    <style>
+        .workflow-step {
+        fill: white;
+        stroke: #d0d7de;
+        stroke-width: 1.5;
+        filter: url(#shadow);
+        }
+        .workflow-step:hover {
+        stroke: #0969da;
+        }
+        .step-title {
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        font-size: 16px;
+        font-weight: 600;
+        fill: #24292f;
+        }
+        .step-subtitle {
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        font-size: 13px;
+        fill: #57606a;
+        }
+        .step-detail {
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        font-size: 12px;
+        fill: #656d76;
+        }
+        .connector-line {
+        stroke: #d0d7de;
+        stroke-width: 2;
+        fill: none;
+        }
+        .check-icon {
+        fill: #2da44e;
+        }
+        .parallel-group {
+        fill: #f6f8fa;
+        stroke: #d0d7de;
+        stroke-width: 1;
+        }
+        .badge {
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        font-size: 11px;
+        font-weight: 600;
+        }
+        .badge-light {
+        fill: #24292f;
+        }
+        .badge-dark {
+        fill: white;
+        }
+    </style>
+
+    <!-- Background -->
+    <rect width="1200" height="1400" fill="white"/>
+
+    <!-- Title -->
+    <text x="600" y="40" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="24" font-weight="700" fill="#24292f" text-anchor="middle">
+        CI/CD Pipeline GitHub Actions
+    </text>
+    <text x="600" y="65" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="14" fill="#57606a" text-anchor="middle">
+        Supply Chain Security Pipeline
+    </text>
+
+    <!-- Step 1: Trigger -->
+    <g>
+        <rect class="workflow-step" x="400" y="100" width="400" height="80" rx="6"/>
+        <circle cx="430" cy="140" r="16" fill="#f6f8fa" stroke="#d0d7de" stroke-width="1.5"/>
+        <text x="430" y="146" font-size="18" text-anchor="middle">⚡</text>
+        <text class="step-title" x="460" y="135">Pipeline Trigger</text>
+        <text class="step-subtitle" x="460" y="155">push, pull_request, schedule, workflow_dispatch</text>
+    </g>
+
+    <!-- Connector -->
+    <line class="connector-line" x1="600" y1="180" x2="600" y2="220"/>
+    <circle cx="600" cy="200" r="12" fill="#2da44e"/>
+    <path d="M 595 200 L 598 203 L 605 196" stroke="white" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+
+    <!-- Step 2: Build & Test -->
+    <g>
+        <rect class="workflow-step" x="400" y="220" width="400" height="100" rx="6"/>
+        <circle cx="430" cy="270" r="16" fill="#ddf4ff" stroke="#0969da" stroke-width="1.5"/>
+        <text x="430" y="276" font-size="18" text-anchor="middle">🔨</text>
+        <text class="step-title" x="460" y="260">Build &amp; Unit Tests</text>
+        <text class="step-subtitle" x="460" y="280">Maven clean, test, package</text>
+    </g>
+
+    <!-- Connector -->
+    <line class="connector-line" x1="600" y1="320" x2="600" y2="360"/>
+    <circle cx="600" cy="340" r="12" fill="#2da44e"/>
+    <path d="M 595 340 L 598 343 L 605 336" stroke="white" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+
+    <!-- Parallel Scans Group -->
+    <rect class="parallel-group" x="50" y="360" width="1100" height="340" rx="8"/>
+    <text x="70" y="385" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="16" font-weight="600" fill="#24292f">
+        🛡️ Security Scans (Parallel Execution)
+    </text>
+
+    <!-- Row 1 of parallel scans -->
+    <!-- SAST -->
+    <g>
+        <rect class="workflow-step" x="80" y="400" width="240" height="90" rx="6"/>
+        <circle cx="105" cy="445" r="12" fill="#fff8c5" stroke="#bf8700" stroke-width="1.5"/>
+        <text x="105" y="450" font-size="14" text-anchor="middle">🔍</text>
+        <text class="step-title" x="130" y="435">SAST</text>
+        <text class="step-detail" x="130" y="453">Semgrep, CodeQL</text>
+    </g>
+
+    <!-- Secrets Scan -->
+    <g>
+        <rect class="workflow-step" x="350" y="400" width="240" height="90" rx="6"/>
+        <circle cx="375" cy="445" r="12" fill="#ffebe9" stroke="#d1242f" stroke-width="1.5"/>
+        <text x="375" y="450" font-size="14" text-anchor="middle">🔐</text>
+        <text class="step-title" x="400" y="435">Secrets Scan</text>
+        <text class="step-detail" x="400" y="453">Gitleaks, TruffleHog</text>
+    </g>
+
+    <!-- SCA -->
+    <g>
+        <rect class="workflow-step" x="620" y="400" width="240" height="90" rx="6"/>
+        <circle cx="645" cy="445" r="12" fill="#fff8c5" stroke="#bf8700" stroke-width="1.5"/>
+        <text x="645" y="450" font-size="14" text-anchor="middle">📚</text>
+        <text class="step-title" x="670" y="435">SCA</text>
+        <text class="step-detail" x="670" y="453">Dependency-Check</text>
+    </g>
+
+    <!-- IaC Scan -->
+    <g>
+        <rect class="workflow-step" x="890" y="400" width="240" height="90" rx="6"/>
+        <circle cx="915" cy="445" r="12" fill="#ddf4ff" stroke="#0969da" stroke-width="1.5"/>
+        <text x="915" y="450" font-size="14" text-anchor="middle">🏗️</text>
+        <text class="step-title" x="940" y="435">IaC Scan</text>
+        <text class="step-detail" x="940" y="453">Checkov Dockerfile</text>
+    </g>
+
+    <!-- Row 2 of parallel scans -->
+    <!-- SBOM -->
+    <g>
+        <rect class="workflow-step" x="80" y="510" width="240" height="90" rx="6"/>
+        <circle cx="105" cy="555" r="12" fill="#ddf4ff" stroke="#0969da" stroke-width="1.5"/>
+        <text x="105" y="560" font-size="14" text-anchor="middle">📋</text>
+        <text class="step-title" x="130" y="545">SBOM</text>
+        <text class="step-detail" x="130" y="563">CycloneDX</text>
+    </g>
+
+    <!-- License Check -->
+    <g>
+        <rect class="workflow-step" x="350" y="510" width="240" height="90" rx="6"/>
+        <circle cx="375" cy="555" r="12" fill="#ddf4ff" stroke="#0969da" stroke-width="1.5"/>
+        <text x="375" y="560" font-size="14" text-anchor="middle">⚖️</text>
+        <text class="step-title" x="400" y="545">License Check</text>
+        <text class="step-detail" x="400" y="563">Maven License Plugin</text>
+    </g>
+
+    <!-- Code Coverage -->
+    <g>
+        <rect class="workflow-step" x="620" y="510" width="240" height="90" rx="6"/>
+        <circle cx="645" cy="555" r="12" fill="#ddf4ff" stroke="#0969da" stroke-width="1.5"/>
+        <text x="645" y="560" font-size="14" text-anchor="middle">📊</text>
+        <text class="step-title" x="670" y="545">Code Coverage</text>
+        <text class="step-detail" x="670" y="563">JaCoCo + SonarQube</text>
+    </g>
+
+    <!-- Quality Gate -->
+    <g>
+        <rect class="workflow-step" x="890" y="510" width="240" height="90" rx="6"/>
+        <circle cx="915" cy="555" r="12" fill="#ddf4ff" stroke="#0969da" stroke-width="1.5"/>
+        <text x="915" y="560" font-size="14" text-anchor="middle">✅</text>
+        <text class="step-title" x="940" y="545">Quality Gate</text>
+        <text class="step-detail" x="940" y="563">SonarQube validation</text>
+    </g>
+
+    <!-- Row 3: Docker scan -->
+    <g>
+        <rect class="workflow-step" x="80" y="620" width="510" height="60" rx="6"/>
+        <circle cx="105" cy="650" r="12" fill="#ddf4ff" stroke="#0969da" stroke-width="1.5"/>
+        <text x="105" y="655" font-size="14" text-anchor="middle">🐳</text>
+        <text class="step-title" x="130" y="645">Docker Build &amp; Scan</text>
+        <text class="step-detail" x="130" y="663">Trivy vulnerability scan (SARIF)</text>
+    </g>
+
+    <!-- Connector arrows from parallel to docker -->
+    <path d="M 200 490 Q 200 580, 300 620" class="connector-line" stroke-dasharray="4,4"/>
+    <path d="M 470 490 Q 470 580, 400 620" class="connector-line" stroke-dasharray="4,4"/>
+    <path d="M 740 600 Q 740 610, 590 620" class="connector-line" stroke-dasharray="4,4"/>
+    <path d="M 1010 600 Q 1010 610, 590 620" class="connector-line" stroke-dasharray="4,4"/>
+
+    <!-- Connector -->
+    <line class="connector-line" x1="600" y1="700" x2="600" y2="740"/>
+    <circle cx="600" cy="720" r="12" fill="#2da44e"/>
+    <path d="M 595 720 L 598 723 L 605 716" stroke="white" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+
+    <!-- Step 4: Publish -->
+    <g>
+        <rect class="workflow-step" x="400" y="740" width="400" height="90" rx="6"/>
+        <circle cx="430" cy="785" r="16" fill="#ddf4ff" stroke="#0969da" stroke-width="1.5"/>
+        <text x="430" y="791" font-size="18" text-anchor="middle">📦</text>
+        <text class="step-title" x="460" y="775">Publish Docker Image</text>
+        <text class="step-subtitle" x="460" y="795">Docker Hub with SBOM &amp; Attestation</text>
+        <rect x="460" y="800" width="100" height="16" rx="3" fill="url(#successGrad)"/>
+        <text class="badge badge-dark" x="510" y="811" text-anchor="middle" font-size="10">🌿 main branch only</text>
+    </g>
+
+    <!-- Connector -->
+    <line class="connector-line" x1="600" y1="830" x2="600" y2="870"/>
+    <circle cx="600" cy="850" r="12" fill="#2da44e"/>
+    <path d="M 595 850 L 598 853 L 605 846" stroke="white" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+
+    <!-- Step 5: Deploy -->
+    <g>
+        <rect class="workflow-step" x="400" y="870" width="400" height="90" rx="6"/>
+        <circle cx="430" cy="915" r="16" fill="#ddf4ff" stroke="#0969da" stroke-width="1.5"/>
+        <text x="430" y="921" font-size="18" text-anchor="middle">🚀</text>
+        <text class="step-title" x="460" y="905">Deploy to Production</text>
+        <text class="step-subtitle" x="460" y="925">SSH deployment with docker pull &amp; run</text>
+        <rect x="460" y="930" width="100" height="16" rx="3" fill="url(#successGrad)"/>
+        <text class="badge badge-dark" x="510" y="941" text-anchor="middle" font-size="10">🌿 main branch only</text>
+    </g>
+
+    <!-- Connector -->
+    <line class="connector-line" x1="600" y1="960" x2="600" y2="1000"/>
+    <circle cx="600" cy="980" r="12" fill="#2da44e"/>
+    <path d="M 595 980 L 598 983 L 605 976" stroke="white" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+
+    <!-- Step 6: DAST -->
+    <g>
+        <rect class="workflow-step" x="400" y="1000" width="400" height="80" rx="6"/>
+        <circle cx="430" cy="1040" r="16" fill="#ffebe9" stroke="#d1242f" stroke-width="1.5"/>
+        <text x="430" y="1046" font-size="18" text-anchor="middle">🎯</text>
+        <text class="step-title" x="460" y="1035">DAST - OWASP ZAP</text>
+        <text class="step-subtitle" x="460" y="1055">Dynamic Application Security Testing</text>
+        <rect x="460" y="1060" width="120" height="16" rx="3" fill="#d1242f"/>
+        <text class="badge badge-dark" x="520" y="1071" text-anchor="middle" font-size="10">⚠️ Skip on Pull Request</text>
+    </g>
+
+    <!-- Connector -->
+    <line class="connector-line" x1="600" y1="1080" x2="600" y2="1120"/>
+    <circle cx="600" cy="1100" r="12" fill="#2da44e"/>
+    <path d="M 595 1100 L 598 1103 L 605 1096" stroke="white" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+
+    <!-- Step 7: Notifications -->
+    <g>
+        <rect class="workflow-step" x="400" y="1120" width="400" height="80" rx="6"/>
+        <circle cx="430" cy="1160" r="16" fill="#f6f8fa" stroke="#d0d7de" stroke-width="1.5"/>
+        <text x="430" y="1166" font-size="18" text-anchor="middle">📬</text>
+        <text class="step-title" x="460" y="1155">Send Notifications</text>
+        <text class="step-subtitle" x="460" y="1175">Slack / Email - Pipeline status report</text>
+        <rect x="460" y="1180" width="75" height="16" rx="3" fill="#6e7781"/>
+        <text class="badge badge-dark" x="497" y="1191" text-anchor="middle" font-size="10">⚡ always()</text>
+    </g>
+
+    <!-- Legend -->
+    <rect x="50" y="1250" width="1100" height="120" rx="8" fill="#f6f8fa" stroke="#d0d7de" stroke-width="1"/>
+    <text x="70" y="1280" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="16" font-weight="600" fill="#24292f">
+        📖 Pipeline Flow Legend
+    </text>
+    <circle cx="80" cy="1305" r="8" fill="#2da44e"/>
+    <text x="100" y="1310" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="13" fill="#24292f">
+        Success checkpoint - Next step executes
+    </text>
+    <line x1="80" y1="1330" x2="120" y2="1330" stroke="#d0d7de" stroke-width="2" stroke-dasharray="4,4"/>
+    <text x="130" y="1335" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="13" fill="#24292f">
+        Parallel execution flow
+    </text>
+    <rect x="650" y="1295" width="140" height="20" rx="4" fill="url(#successGrad)"/>
+    <text class="badge badge-dark" x="720" y="1309" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="11" font-weight="600" text-anchor="middle">
+        Conditional execution
+    </text>
+    <text x="650" y="1340" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="12" fill="#57606a">
+        • Security scans run in parallel after build
+    </text>
+    <text x="650" y="1360" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="12" fill="#57606a">
+        • DAST after deployment • Publish/Deploy only on main branch
+    </text>
+</svg>

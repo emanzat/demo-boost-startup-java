@@ -8,7 +8,7 @@ permissions:
 
 jobs:
   secure-iac-dockerfile-scan:
-    name: Secure IaC - Dockerfile Scan
+    name: Sécurité IaC - Scan Dockerfile
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code

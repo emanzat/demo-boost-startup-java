@@ -2,7 +2,7 @@ on:
   workflow_call:
 jobs:
   build-and-test:
-    name: Build & Unit Tests
+    name: Compilation & Tests Unitaires
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code

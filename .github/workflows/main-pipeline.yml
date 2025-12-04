@@ -37,9 +37,6 @@ jobs:
     needs: [code-quality-sast, secret-scanning, secure-iac-dockerfile-scan]
     uses: ./.github/workflows/build-docker-image.yml
 
-#  dast-dynamic-security-testing:
-#    needs: build-and-scan-docker
-#    uses: ./.github/workflows/dast-dynamic-security-testing.yml
 
   publish-docker-hub:
     needs: [build-and-scan-docker]
@@ -50,6 +47,10 @@ jobs:
     needs: publish-docker-hub
     uses: ./.github/workflows/deploy-production-server.yml
     secrets: inherit
+
+  dast-dynamic-security-testing:
+    needs: build-and-scan-docker
+    uses: ./.github/workflows/dast-dynamic-security-testing.yml
 
   send-notifications:
     needs: deploy-production-server

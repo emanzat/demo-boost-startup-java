@@ -8,7 +8,7 @@ permissions:
 
 jobs:
   code-quality-sast:
-    name: Code Quality & SAST
+    name: Qualité Code & Analyse SAST
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code

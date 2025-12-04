@@ -7,7 +7,7 @@ on:
         required: true
 jobs:
   publish-docker-hub:
-    name: Publish to Docker Hub
+    name: Publication sur Docker Hub
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -29,14 +29,14 @@ jobs:
           file: ./Dockerfile
           push: true
           tags: |
-            ${{ secrets.DOCKERHUB_USERNAME }}/demo-boost-startup-java:latest
-            ${{ secrets.DOCKERHUB_USERNAME }}/demo-boost-startup-java:${{ github.sha }}
+            ${{ secrets.DOCKERHUB_USERNAME }}/${{ secrets.DEPLOY_APPLI_NAME }}:latest
+            ${{ secrets.DOCKERHUB_USERNAME }}/${{ secrets.DEPLOY_APPLI_NAME }}:${{ github.sha }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
       - name: Generate SBOM
         uses: anchore/sbom-action@v0
         with:
-          image: ${{ secrets.DOCKERHUB_USERNAME }}/demo-boost-startup-java:latest
+          image: ${{ secrets.DOCKERHUB_USERNAME }}/${{ secrets.DEPLOY_APPLI_NAME }}:latest
           format: spdx-json
           output-file: sbom.spdx.json
       - name: Upload SBOM

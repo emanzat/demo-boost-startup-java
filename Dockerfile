@@ -15,6 +15,7 @@ RUN ls -l /app/extracted
 FROM bellsoft/liberica-runtime-container:jdk-25-cds-slim-musl
 WORKDIR /app
 EXPOSE 8080
+ENV MONGODB_COLLECTION_NAME=persons
 ENTRYPOINT ["java", "-Dspring.aot.enabled=true", "-XX:AOTCache=app.aot", "-Dspring.profiles.active=docker", "-jar", "/app/app.jar"]
 COPY --from=optimizer /app/extracted/lib/ ./lib/
 COPY --from=optimizer /app/extracted/app.jar ./

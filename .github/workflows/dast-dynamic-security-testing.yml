@@ -15,7 +15,7 @@ jobs:
       - name: Load and run application container
         run: |
           docker load --input /tmp/image.tar
-          docker run -d --name test-app -p 8080:8080 demo-boost-startup-java:${{ github.sha }}
+          docker run -d --name test-app -p 8080:8080 ${{ secrets.DEPLOY_APPLI_NAME }}:${{ github.sha }}
           sleep 30
       - name: Wait for application to be ready
         run: |
