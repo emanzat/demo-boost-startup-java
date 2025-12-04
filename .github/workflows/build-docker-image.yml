@@ -28,31 +28,7 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-      - name: Run Trivy vulnerability scanner (JSON)
-        uses: aquasecurity/trivy-action@0.27.0
-        with:
-          image-ref: ${{ secrets.DEPLOY_APPLI_NAME }}:${{ github.sha }}
-          format: 'json'
-          output: 'trivy-results.json'
-          severity: 'CRITICAL,HIGH,MEDIUM'
-          exit-code: '0'
-
-      - name: Install jq
-        run: sudo apt-get update && sudo apt-get install -y jq
-
-      - name: Extract CVE list from Trivy report
-        run: |
-          jq . trivy-results.json
-          jq -r '.Results[].Vulnerabilities[].VulnerabilityID' trivy-results.json | sort | uniq > cve-list.txt
-          cat cve-list.txt
-
-      - name: Upload CVE list
-        uses: actions/upload-artifact@v4
-        with:
-          name: cve-list
-          path: cve-list.txt
-
-      - name: Run Trivy vulnerability scanner (SARIF)
+      - name: Run Trivy scan for GitHub Security
         uses: aquasecurity/trivy-action@0.27.0
         with:
           image-ref: ${{ secrets.DEPLOY_APPLI_NAME }}:${{ github.sha }}
@@ -60,14 +36,14 @@ jobs:
           output: 'trivy-results.sarif'
           severity: 'CRITICAL,HIGH,MEDIUM'
 
-      - name: Upload Trivy SARIF
+      - name: Upload scan results to GitHub Security
         uses: github/codeql-action/upload-sarif@v4
         if: always()
         with:
           sarif_file: trivy-results.sarif
           category: trivy-container-scan
 
-      - name: Check for critical vulnerabilities
+      - name: Run Trivy scan (blocking on non-ignored vulns)
         uses: aquasecurity/trivy-action@0.27.0
         with:
           image-ref: ${{ secrets.DEPLOY_APPLI_NAME }}:${{ github.sha }}
