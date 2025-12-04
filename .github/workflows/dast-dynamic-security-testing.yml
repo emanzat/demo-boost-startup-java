@@ -53,7 +53,7 @@ jobs:
           cmd_options: '-a -j'
           allow_issue_writing: false
           fail_action: false
-          artifact_name: 'zap-scan-results'
+          token: ''
       - name: Stop test containers
         if: always()
         run: |
