@@ -47,6 +47,9 @@ public class SecurityHeaderFilter implements Filter {
      * Détermine si le chemin correspond à une ressource statique
      */
     private boolean isStaticResource(String path) {
-        return path.matches(".+\\.(css|js|jpg|jpeg|png|gif|ico|svg|woff|woff2|ttf|eot)$");
+        return path.matches(".+\\.(css|js|jpg|jpeg|png|gif|ico|svg|woff|woff2|ttf|eot)$")
+            || path.equals("/")
+            || path.equals("/robots.txt")
+            || path.equals("/sitemap.xml");
     }
 }

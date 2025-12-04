@@ -1,0 +1,68 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 500" width="800" height="500">
+  <!-- Background -->
+  <rect width="800" height="500" fill="#f8f9fa"/>
+
+  <!-- GitHub Actions Runner Box -->
+  <rect x="50" y="30" width="700" height="440" fill="#fff" stroke="#dee2e6" stroke-width="2" rx="10"/>
+  <text x="400" y="60" font-family="Arial, sans-serif" font-size="18" font-weight="bold" fill="#212529" text-anchor="middle">GitHub Actions Runner</text>
+
+  <!-- Docker Network Box -->
+  <rect x="80" y="200" width="640" height="240" fill="#e7f5ff" stroke="#339af0" stroke-width="2" rx="8" stroke-dasharray="5,5"/>
+  <text x="400" y="225" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="#1971c2" text-anchor="middle">Docker Network: app-network</text>
+
+  <!-- MongoDB Container -->
+  <g>
+    <rect x="120" y="260" width="240" height="140" fill="#339af0" stroke="#1971c2" stroke-width="2" rx="8"/>
+    <text x="240" y="290" font-family="Arial, sans-serif" font-size="16" font-weight="bold" fill="#fff" text-anchor="middle">🍃 MongoDB 7</text>
+    <text x="240" y="315" font-family="Arial, sans-serif" font-size="14" fill="#fff" text-anchor="middle">mongo:7</text>
+    <text x="240" y="340" font-family="Arial, sans-serif" font-size="12" fill="#e7f5ff" text-anchor="middle">Container: mongodb</text>
+    <text x="240" y="365" font-family="Arial, sans-serif" font-size="12" fill="#e7f5ff" text-anchor="middle">Port: 27017</text>
+    <text x="240" y="385" font-family="Arial, sans-serif" font-size="11" fill="#c5f6fa" text-anchor="middle">Database: demo</text>
+  </g>
+
+  <!-- Spring Boot App Container -->
+  <g>
+    <rect x="440" y="260" width="240" height="140" fill="#51cf66" stroke="#2f9e44" stroke-width="2" rx="8"/>
+    <text x="560" y="290" font-family="Arial, sans-serif" font-size="16" font-weight="bold" fill="#fff" text-anchor="middle">☕ Spring Boot App</text>
+    <text x="560" y="315" font-family="Arial, sans-serif" font-size="14" fill="#fff" text-anchor="middle">test-app</text>
+    <text x="560" y="340" font-family="Arial, sans-serif" font-size="12" fill="#d3f9d8" text-anchor="middle">Container: test-app</text>
+    <text x="560" y="365" font-family="Arial, sans-serif" font-size="12" fill="#d3f9d8" text-anchor="middle">Port: 8080</text>
+    <text x="560" y="385" font-family="Arial, sans-serif" font-size="11" fill="#ebfbee" text-anchor="middle">/actuator/health</text>
+  </g>
+
+  <!-- OWASP ZAP Container -->
+  <g>
+    <rect x="280" y="100" width="240" height="70" fill="#ff6b6b" stroke="#c92a2a" stroke-width="2" rx="8"/>
+    <text x="400" y="125" font-family="Arial, sans-serif" font-size="16" font-weight="bold" fill="#fff" text-anchor="middle">🎯 OWASP ZAP Scanner</text>
+    <text x="400" y="148" font-family="Arial, sans-serif" font-size="12" fill="#ffe3e3" text-anchor="middle">ghcr.io/zaproxy/zaproxy:stable</text>
+    <text x="400" y="163" font-family="Arial, sans-serif" font-size="11" fill="#ffc9c9" text-anchor="middle">zap-baseline.py</text>
+  </g>
+
+  <!-- Arrow: App -> MongoDB -->
+  <defs>
+    <marker id="arrowBlue" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L0,6 L9,3 z" fill="#1971c2" />
+    </marker>
+    <marker id="arrowRed" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L0,6 L9,3 z" fill="#c92a2a" />
+    </marker>
+  </defs>
+
+  <path d="M 440 330 L 360 330" stroke="#1971c2" stroke-width="3" fill="none" marker-end="url(#arrowBlue)"/>
+  <text x="400" y="320" font-family="Arial, sans-serif" font-size="11" fill="#1971c2" text-anchor="middle" font-weight="bold">mongodb://mongodb:27017</text>
+
+  <!-- Arrow: ZAP -> App -->
+  <path d="M 480 170 L 530 260" stroke="#c92a2a" stroke-width="3" fill="none" marker-end="url(#arrowRed)"/>
+  <text x="520" y="210" font-family="Arial, sans-serif" font-size="11" fill="#c92a2a" text-anchor="middle" font-weight="bold">HTTP Scan</text>
+  <text x="520" y="225" font-family="Arial, sans-serif" font-size="10" fill="#c92a2a" text-anchor="middle">localhost:8080</text>
+
+  <!-- Legend -->
+  <g>
+    <text x="50" y="490" font-family="Arial, sans-serif" font-size="12" fill="#495057" font-weight="bold">Flux d'exécution:</text>
+    <text x="170" y="490" font-family="Arial, sans-serif" font-size="11" fill="#495057">1️⃣ Pull image Docker Hub</text>
+    <text x="330" y="490" font-family="Arial, sans-serif" font-size="11" fill="#495057">2️⃣ Start MongoDB</text>
+    <text x="460" y="490" font-family="Arial, sans-serif" font-size="11" fill="#495057">3️⃣ Start App</text>
+    <text x="560" y="490" font-family="Arial, sans-serif" font-size="11" fill="#495057">4️⃣ Health Check</text>
+    <text x="670" y="490" font-family="Arial, sans-serif" font-size="11" fill="#495057">5️⃣ ZAP Scan</text>
+  </g>
+</svg>

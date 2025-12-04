@@ -8,6 +8,14 @@
 
 Tester l'application en cours d'exécution avec OWASP ZAP pour détecter les vulnérabilités runtime (DAST).
 
+## 🏗️ Architecture DAST
+
+<div align="center">
+  <img src="images/dast-architecture.svg" alt="Architecture DAST" width="800"/>
+</div>
+
+**Description** : Le workflow DAST démarre MongoDB 7 et l'application Spring Boot dans un réseau Docker partagé, puis OWASP ZAP scanne l'application pour détecter les vulnérabilités de sécurité.
+
 ## ⏱️ Durée Estimée
 
 45 minutes
@@ -16,108 +24,167 @@ Tester l'application en cours d'exécution avec OWASP ZAP pour détecter les vul
 
 ## 📝 Instructions
 
-### Étape 8.1 : Créer la configuration ZAP
+### Étape 8.1 : Créer le workflow DAST
 
-Créez le fichier `.zap/rules.tsv` :
-
-```tsv
-10003	IGNORE	(Vulnerable JS Library)
-10015	IGNORE	(Re-examine Cache-control Directives)
-10027	IGNORE	(Information Disclosure - Suspicious Comments)
-10096	IGNORE	(Timestamp Disclosure)
-10109	IGNORE	(Modern Web Application)
-```
-
-### Étape 8.2 : Créer le workflow DAST
-
-Créez `.github/workflows/dast-dynamic-security-testing.yml` :
+Créez `.github/workflows/dast-zap-test.yml` :
 
 ```yaml
-name: DAST - Dynamic Security Testing
-
 on:
   workflow_call:
+    secrets:
+      DOCKERHUB_USERNAME:
+        required: true
+      DOCKERHUB_TOKEN:
+        required: true
+      DEPLOY_APPLI_NAME:
+        required: true
+      MONGODB_COLLECTION_NAME:
+        required: false
 
-env:
-  DOCKER_IMAGE_NAME: demo-boost-startup-java
+permissions:
+  contents: read
 
 jobs:
-  dast-dynamic-security-testing:
-    name: DAST - OWASP ZAP
+  dast-zap-test:
+    name: 🧪 DAST ZAP Test
     runs-on: ubuntu-latest
-
     steps:
-      - name: 📥 Checkout code
+      - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: 📥 Download Docker image
-        uses: actions/download-artifact@v4
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
         with:
-          name: docker-image
-          path: /tmp
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: 🐳 Load and start application
+      - name: Pull Docker image from Docker Hub
+        run: docker pull ${{ secrets.DOCKERHUB_USERNAME }}/${{ secrets.DEPLOY_APPLI_NAME }}:${{ github.sha }}
+
+      - name: Create Docker network
+        run: docker network create app-network
+
+      - name: Start MongoDB 7 container
         run: |
-          docker load -i /tmp/docker-image.tar
-          docker run -d --name test-app -p 8080:8080 ${{ env.DOCKER_IMAGE_NAME }}:latest
+          docker run -d --name mongodb \
+            --network app-network \
+            -e MONGO_INITDB_DATABASE=${{ secrets.MONGODB_COLLECTION_NAME || 'demo' }} \
+            mongo:7
 
-          echo "⏳ Waiting for application to start..."
-          for i in {1..30}; do
-            if curl -f http://localhost:8080/actuator/health > /dev/null 2>&1; then
-              echo "✅ Application is ready!"
-              break
-            fi
-            echo "Attempt $i/30..."
-            sleep 2
-          done
+      - name: Wait for MongoDB to be ready
+        run: |
+          timeout 30 sh -c 'until docker exec mongodb mongosh --eval "db.adminCommand({ping:1})" > /dev/null 2>&1; do sleep 2; done'
 
-      - name: 🎯 Run OWASP ZAP Baseline Scan
-        uses: zaproxy/action-baseline@v0.12.0
-        with:
-          target: 'http://localhost:8080'
-          rules_file_name: '.zap/rules.tsv'
-          cmd_options: '-a'
+      - name: Run application container
+        run: |
+          docker run -d --name test-app \
+            --network app-network \
+            -p 8080:8080 \
+            -e SPRING_DATA_MONGODB_URI=mongodb://mongodb:27017/${{ secrets.MONGODB_COLLECTION_NAME || 'demo' }} \
+            ${{ secrets.DOCKERHUB_USERNAME }}/${{ secrets.DEPLOY_APPLI_NAME }}:${{ github.sha }}
 
-      - name: 📤 Upload ZAP Report
+      - name: Wait for application to be ready
+        run: |
+          timeout 90 sh -c 'until curl -f http://localhost:8080/actuator/health; do sleep 2; done'
+
+      - name: Create ZAP reports directory
+        run: |
+          mkdir -p ${{ github.workspace }}/zap-reports
+          mkdir -p /tmp/zap-home
+          chmod -R 777 ${{ github.workspace }}/zap-reports
+          chmod -R 777 /tmp/zap-home
+
+      - name: Run OWASP ZAP DAST scan (Docker direct)
+        run: |
+          docker run --rm \
+            -v ${{ github.workspace }}/zap-reports:/zap/wrk/:rw \
+            -v /tmp/zap-home:/home/zap:rw \
+            --network=host \
+            ghcr.io/zaproxy/zaproxy:stable \
+            zap-baseline.py \
+            -t http://localhost:8080 \
+            -r zap-report.html
+        continue-on-error: true
+
+      - name: Upload ZAP reports
+        if: always()
         uses: actions/upload-artifact@v4
-        if: always()
         with:
-          name: zap-report
-          path: report_html.html
-          retention-days: 30
+          name: zap-scan-reports
+          path: |
+            zap-reports/zap-report.html
 
-      - name: 🧹 Cleanup
+      - name: Stop test containers
         if: always()
         run: |
-          docker stop test-app || true
-          docker rm test-app || true
+          docker stop test-app mongodb || true
+          docker rm test-app mongodb || true
+          docker network rm app-network || true
 ```
 
-### Étape 8.3 : Ajouter au pipeline principal
+### Étape 8.2 : Ajouter au pipeline principal
 
 **Important** : DAST ne s'exécute PAS sur les Pull Requests (trop long).
 
-Modifiez `main-pipeline.yml` :
+Modifiez `main-pipeline.yml` pour ajouter le job DAST après la publication sur Docker Hub :
 
 ```yaml
-  build-and-scan-docker:
-    needs:
-      - code-quality-sast
-      - secret-scanning
-      - sca-dependency-scan
-      - secure-iac-dockerfile-scan
-    uses: ./.github/workflows/build-docker-image.yml
+  publish-docker-hub:
+    needs: [build-and-scan-docker]
+    uses: ./.github/workflows/publish-docker-hub.yml
+    secrets: inherit
 
   # ═══════════════════════════════════════════════
-  # ÉTAPE 7 : DAST (Pas sur les PRs)
+  # ÉTAPE 8 : DAST (Après publication Docker Hub)
   # ═══════════════════════════════════════════════
-  dast-dynamic-security-testing:
-    needs: build-and-scan-docker
-    if: github.event_name != 'pull_request'  # ⚠️ Désactivé sur les PRs
-    uses: ./.github/workflows/dast-dynamic-security-testing.yml
+  dast-zap-test:
+    needs: publish-docker-hub
+    uses: ./.github/workflows/dast-zap-test.yml
+    secrets: inherit
 ```
 
-### Étape 8.4 : Tester
+**Note** : DAST s'exécute après `publish-docker-hub` car il doit pull l'image depuis Docker Hub.
+
+---
+
+### Étape 8.3 : Pourquoi Docker directe au lieu de l'action ZAP ?
+
+**Question** : Pourquoi utilisons-nous `docker run` au lieu de `zaproxy/action-baseline@v0.15.0` ?
+
+**Réponse** : L'action GitHub ZAP a des limitations :
+- ⚠️ Bug d'upload d'artifacts (nom `zap_scan` avec underscore refusé par GitHub)
+- ⚠️ Moins de contrôle sur les paramètres
+- ⚠️ Dépendance à une action externe qui peut changer
+
+**Avantages de Docker directe** :
+- ✅ **Contrôle total** : Choix de tous les paramètres ZAP
+- ✅ **Pas de dépendance** : Utilise l'image officielle ZAP
+- ✅ **Upload manuel** : On contrôle le nom des artifacts (`zap-scan-reports`)
+- ✅ **Flexibilité** : Facile d'ajouter des options ZAP
+
+**Comment ça fonctionne** :
+```yaml
+# Au lieu de :
+# uses: zaproxy/action-baseline@v0.15.0
+
+# On utilise :
+docker run --rm \
+  -v ${{ github.workspace }}/zap-reports:/zap/wrk/:rw \
+  --network=host \
+  ghcr.io/zaproxy/zaproxy:stable \
+  zap-baseline.py \
+  -t http://localhost:8080 \
+  -r zap-report.html
+```
+
+**Les volumes Docker** :
+- `-v .../zap-reports:/zap/wrk/:rw` : Montage pour sauvegarder le rapport
+- `-v /tmp/zap-home:/home/zap:rw` : Permissions d'écriture pour ZAP
+- `--network=host` : Accès à `localhost:8080`
+
+---
+
+### Étape 8.4 : Premier test (scan initial)
 
 ```bash
 git add .
@@ -127,6 +194,116 @@ git push origin main
 
 **Note** : Si vous poussez vers une PR, DAST sera skippé !
 
+Attendez que le pipeline se termine et **téléchargez le rapport ZAP** depuis les artifacts GitHub Actions.
+
+---
+
+### Étape 8.5 : Analyser le rapport HTML
+
+1. **Téléchargez le rapport** `zap-scan-reports` depuis les artifacts GitHub Actions
+2. **Ouvrez** `zap-report.html` dans votre navigateur
+3. **Identifiez les alertes de sécurité** :
+   - Regardez la section "Summary of Alerts"
+   - Notez les alertes **Low** et **Informational**
+   - Lisez les détails de chaque alerte (Description, Solution, CWE)
+
+**Exemple d'alertes courantes** :
+- 🟡 **Low** : Insufficient Site Isolation Against Spectre Vulnerability
+- 🔵 **Informational** : Storable and Cacheable Content
+
+---
+
+### Étape 8.6 : Corriger les vulnérabilités dans le filtre
+
+Créez le filtre de sécurité `src/main/java/com/example/demo/config/SecurityHeaderFilter.java` :
+
+```java
+package com.example.demo.config;
+import jakarta.servlet.*;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import org.springframework.stereotype.Component;
+import java.io.IOException;
+
+@Component
+public class SecurityHeaderFilter implements Filter {
+
+    @Override
+    public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain)
+            throws IOException, ServletException {
+
+        HttpServletRequest req = (HttpServletRequest) request;
+        HttpServletResponse res = (HttpServletResponse) response;
+
+        String path = req.getRequestURI();
+
+        // Empêche le MIME sniffing
+        res.setHeader("X-Content-Type-Options", "nosniff");
+
+        // Correction Spectre - ZAP Alert 90004
+        res.setHeader("Cross-Origin-Resource-Policy", "same-origin");
+        res.setHeader("Cross-Origin-Embedder-Policy", "require-corp");
+        res.setHeader("Cross-Origin-Opener-Policy", "same-origin");
+
+        // Empêche les iframes (protection clickjacking)
+        res.setHeader("X-Frame-Options", "DENY");
+
+        // Headers de cache - ZAP Alert 10049
+        // Autorise le cache uniquement pour les ressources statiques
+        if (isStaticResource(path)) {
+            // Ressources statiques : cache autorisé (performance)
+            res.setHeader("Cache-Control", "public, max-age=31536000, immutable");
+        } else {
+            // Pages dynamiques et API : pas de cache (sécurité)
+            res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate, private");
+            res.setHeader("Pragma", "no-cache");
+            res.setHeader("Expires", "0");
+        }
+
+        chain.doFilter(request, response);
+    }
+
+    /**
+     * Détermine si le chemin correspond à une ressource statique
+     */
+    private boolean isStaticResource(String path) {
+        return path.matches(".+\\.(css|js|jpg|jpeg|png|gif|ico|svg|woff|woff2|ttf|eot)$")
+            || path.equals("/")
+            || path.equals("/robots.txt")
+            || path.equals("/sitemap.xml");
+    }
+}
+```
+
+**Explication des headers** :
+- `Cross-Origin-Embedder-Policy: require-corp` : Protection contre Spectre
+- `Cross-Origin-Opener-Policy: same-origin` : Isolation des fenêtres
+- `Cache-Control` avec stratégie différenciée :
+  - **Ressources statiques + pages publiques** (`/`, `/robots.txt`, `/sitemap.xml`) : Cache autorisé (`public, max-age=31536000, immutable`) pour la performance
+  - **API et données sensibles** (`/api/*`, `/actuator/*`) : Cache désactivé (`no-cache, no-store`) pour la sécurité
+
+---
+
+### Étape 8.7 : Retester après correction
+
+```bash
+git add .
+git commit -m "fix: add security headers to fix ZAP alerts"
+git push origin main
+```
+
+Attendez le nouveau scan ZAP et **vérifiez que les alertes sont résolues** :
+- ✅ Alerte Spectre (90004) → **PASS**
+- ✅ Alerte Cache (10049) → **PASS** (plus d'alerte "Non-Storable Content")
+
+**Résultat attendu** : Rapport ZAP 100% clean
+```
+✅ High: 0
+✅ Medium: 0
+✅ Low: 0
+✅ Informational: 0
+```
+
 ---
 
 ## ✅ Critères de Validation
@@ -134,7 +311,9 @@ git push origin main
 - [ ] L'application démarre dans Docker
 - [ ] Le health check réussit (`/actuator/health`)
 - [ ] ZAP scanne l'application
-- [ ] Le rapport HTML est généré et uploadé
+- [ ] Le rapport HTML est téléchargé et analysé
+- [ ] Le fichier `SecurityHeaderFilter.java` est créé
+- [ ] Les alertes de sécurité sont corrigées (0 Low, 0 Medium, 0 High)
 - [ ] Le conteneur est correctement nettoyé (`if: always()`)
 - [ ] **Ne s'exécute PAS** sur les Pull Requests
 - [ ] Le temps d'exécution est d'environ 5-10 minutes
@@ -174,21 +353,55 @@ git push origin main
    **Les deux sont complémentaires !**
    </details>
 
-3. **Pourquoi attendre le health check ?**
+3. **Pourquoi MongoDB 7 est nécessaire pour DAST ?**
+   <details>
+   <summary>Voir la réponse</summary>
+
+   L'application Spring Boot nécessite MongoDB pour démarrer :
+   - **Connexion à la base** : `SPRING_DATA_MONGODB_URI`
+   - **Endpoints API** : `/api/persons` nécessite MongoDB
+   - **Health check** : Vérifie la connexion MongoDB
+
+   **Architecture réseau Docker** :
+   ```
+   app-network
+      ├── mongodb (mongo:7)
+      └── test-app (votre application)
+              └── connecté à mongodb://mongodb:27017/demo
+   ```
+
+   **Sans MongoDB** :
+   - L'application ne démarre pas
+   - Le health check échoue
+   - ZAP ne peut pas scanner
+
+   **Ordre de démarrage** :
+   1. MongoDB démarre (wait for ready)
+   2. Application démarre (connectée à MongoDB)
+   3. Health check réussit
+   4. ZAP scanne
+   </details>
+
+4. **Pourquoi attendre le health check ?**
    <details>
    <summary>Voir la réponse</summary>
 
    - L'application Spring Boot met 10-30 secondes à démarrer
+   - MongoDB doit être prêt avant l'application
    - Si on scanne trop tôt, l'application ne répond pas
    - ZAP échouerait car le target est inaccessible
 
-   La boucle `for i in {1..30}` :
-   - Essaie jusqu'à 30 fois
-   - Attend 2 secondes entre chaque tentative
-   - Timeout total : 60 secondes max
+   **Timeout de 90 secondes** :
+   ```bash
+   timeout 90 sh -c 'until curl -f http://localhost:8080/actuator/health; do sleep 2; done'
+   ```
+
+   - Essaie toutes les 2 secondes
+   - Timeout total : 90 secondes max
+   - Suffisant pour MongoDB + Spring Boot
    </details>
 
-4. **Que teste OWASP ZAP exactement ?**
+5. **Que teste OWASP ZAP exactement ?**
    <details>
    <summary>Voir la réponse</summary>
 
@@ -204,6 +417,66 @@ git push origin main
    C'est un scan passif + quelques tests actifs de base.
    </details>
 
+6. **Comment interpréter les niveaux de risque ZAP ?**
+   <details>
+   <summary>Voir la réponse</summary>
+
+   | Niveau | Couleur | Action |
+   |--------|---------|--------|
+   | **High** 🔴 | Rouge | **Bloquer** : Vulnérabilité critique, correction immédiate |
+   | **Medium** 🟠 | Orange | **Corriger rapidement** : Risque sérieux |
+   | **Low** 🟡 | Jaune | **Corriger si possible** : Amélioration de sécurité |
+   | **Informational** 🔵 | Bleu | **Optionnel** : Recommandations de bonnes pratiques |
+
+   **Stratégie recommandée** :
+   - 🔴🟠 Bloquer le déploiement si High/Medium
+   - 🟡 Corriger progressivement les Low
+   - 🔵 Améliorer au fil du temps
+
+   **Note** : Même les alertes Informational peuvent être importantes (ex: manque de headers de sécurité).
+   </details>
+
+7. **Pourquoi utiliser un filtre Servlet au lieu de Spring Security ?**
+   <details>
+   <summary>Voir la réponse</summary>
+
+   **Avantages du filtre Servlet** (`@Component` + `Filter`) :
+   - ✅ **Simple** : Pas besoin de dépendance Spring Security
+   - ✅ **Léger** : Juste des headers HTTP, pas d'authentification complexe
+   - ✅ **Universel** : S'applique à toutes les requêtes automatiquement
+   - ✅ **Performant** : Pas de surcoût de configuration
+
+   **Quand utiliser Spring Security** :
+   - Authentification/autorisation nécessaires (OAuth2, JWT, etc.)
+   - Gestion de sessions utilisateurs
+   - Contrôle d'accès par rôles (RBAC)
+   - CSRF protection avancée
+
+   **Pour des headers HTTP simples, un filtre Servlet suffit amplement !**
+   </details>
+
+8. **Pourquoi autoriser le cache sur `/`, `/robots.txt`, `/sitemap.xml` ?**
+   <details>
+   <summary>Voir la réponse</summary>
+
+   **Ces URLs ne contiennent pas de données sensibles** :
+   - `/` : Page d'accueil publique (souvent statique)
+   - `/robots.txt` : Instructions pour les robots (Google, Bing, etc.)
+   - `/sitemap.xml` : Plan du site (toujours public)
+
+   **Avantages du cache** :
+   - 🚀 **Performance** : Réduction de la charge serveur
+   - 🌍 **SEO** : Les moteurs de recherche accèdent plus rapidement
+   - 💰 **Coût** : Moins de requêtes serveur = moins de ressources
+
+   **Sécurité maintenue** :
+   - 🔒 Les endpoints API (`/api/*`) restent non-cacheables
+   - 🔒 Les endpoints sensibles (`/actuator/*`) restent non-cacheables
+   - 🔒 Toute donnée utilisateur reste non-cacheable
+
+   **Résultat** : Équilibre parfait entre performance et sécurité !
+   </details>
+
 ---
 
 ## 🎯 Architecture Actuelle
@@ -212,10 +485,23 @@ git push origin main
 build-and-test
     ├── [scans de sécurité en parallèle]
     └── build-and-scan-docker
-            └── dast-dynamic-security-testing (si pas PR)
+            └── publish-docker-hub
+                    └── dast-zap-test (MongoDB + Application)
 ```
 
-DAST est conditionnel : il s'exécute seulement sur les push vers main.
+**Ordre d'exécution** :
+1. **Build & Scan Docker** : Crée l'image + scan Trivy
+2. **Publish Docker Hub** : Pousse l'image sur Docker Hub
+3. **DAST ZAP Test** : Pull l'image, démarre MongoDB + App, scanne avec ZAP
+
+**Architecture réseau DAST** :
+```
+GitHub Actions Runner
+    └── Docker Network: app-network
+            ├── mongodb:27017 (mongo:7)
+            └── test-app:8080 (votre application)
+                    └── connecté à mongodb://mongodb:27017
+```
 
 ---
 
