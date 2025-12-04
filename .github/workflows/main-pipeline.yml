@@ -46,7 +46,8 @@ jobs:
 
   dast-dynamic-security-testing:
     needs: publish-docker-hub
-    uses: ./.github/workflows/dast-dynamic-security-testing.yml
+#    uses: ./.github/workflows/dast-dynamic-security-testing.yml
+    uses: ./.github/workflows/dast-zap-test.yml
     secrets: inherit
 
   deploy-production-server:
