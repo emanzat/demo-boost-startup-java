@@ -46,6 +46,16 @@ jobs:
           sarif_file: trivy-results.sarif
           category: trivy-container-scan
 
+      - name: Run Trivy scan (display results)
+        uses: aquasecurity/trivy-action@0.27.0
+        continue-on-error: true
+        with:
+          image-ref: ${{ secrets.DEPLOY_APPLI_NAME }}:${{ github.sha }}
+          format: 'table'
+          exit-code: '0'
+          severity: 'CRITICAL,HIGH'
+          trivyignores: .trivyignore
+
       - name: Run Trivy scan (blocking on non-ignored vulns)
         uses: aquasecurity/trivy-action@0.27.0
         with:
