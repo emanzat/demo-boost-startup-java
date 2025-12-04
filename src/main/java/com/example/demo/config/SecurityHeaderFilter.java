@@ -33,11 +33,9 @@ public class SecurityHeaderFilter implements Filter {
         if (isStaticAsset(path)) {
             // Assets statiques (CSS, JS, images) : cache long (1 an)
             res.setHeader("Cache-Control", "public, max-age=31536000, immutable");
-        } else if (isPublicContent(path)) {
-            // Contenu public (/, robots.txt, sitemap.xml) : cache court (5 minutes)
-            res.setHeader("Cache-Control", "public, max-age=300");
         } else {
-            // Pages dynamiques et API : pas de cache (sécurité)
+            // Toutes les autres pages (y compris /, robots.txt, sitemap.xml) : pas de cache
+            // Ceci empêche les fuites d'informations sensibles via les caches partagés
             res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate, private");
             res.setHeader("Pragma", "no-cache");
             res.setHeader("Expires", "0");
@@ -48,17 +46,9 @@ public class SecurityHeaderFilter implements Filter {
 
     /**
      * Détermine si le chemin correspond à un asset statique (CSS, JS, images)
+     * Ces ressources sont immuables et peuvent être cachées longtemps
      */
     private boolean isStaticAsset(String path) {
         return path.matches(".+\\.(css|js|jpg|jpeg|png|gif|ico|svg|woff|woff2|ttf|eot)$");
-    }
-
-    /**
-     * Détermine si le chemin correspond à un contenu public non-sensible
-     */
-    private boolean isPublicContent(String path) {
-        return path.equals("/")
-            || path.equals("/robots.txt")
-            || path.equals("/sitemap.xml");
     }
 }
