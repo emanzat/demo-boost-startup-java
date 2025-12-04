@@ -8,6 +8,7 @@ permissions:
 
 jobs:
   secure-iac-dockerfile-scan:
+    name: 🏗️ IaC Scan
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code

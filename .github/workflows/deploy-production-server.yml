@@ -20,6 +20,7 @@ on:
 
 jobs:
   deploy-production-server:
+    name: 🚀 Deploy
     runs-on: ubuntu-latest
     steps:
       - name: Deploy to server via SSH
