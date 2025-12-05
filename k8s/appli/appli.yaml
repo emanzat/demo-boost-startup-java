@@ -24,7 +24,7 @@ spec:
     spec:
       containers:
         - name: ema-demo-java
-          image: emanzat/ema-demo-java:latest
+          image: emanzat/ema-demo-java:f12c8dd6815c3ea35b6dffca4a6d26c2ce101601
           ports:
             - containerPort: 8080
               name: http
