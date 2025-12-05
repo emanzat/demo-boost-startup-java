@@ -16,10 +16,8 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-      - uses: actions/github-script@v8
-        with:
-          script: |
-            echo "############# ${{ vars.MONGODB_COLLECTION_NAME }}"
+      - name: Print MongoDB collection
+        run: echo "############# ${{ vars.MONGODB_COLLECTION_NAME }}"
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
