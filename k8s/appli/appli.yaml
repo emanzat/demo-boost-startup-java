@@ -34,7 +34,7 @@ spec:
             - name: SPRING_MONGODB_DATABASE
               value: "demo"
             - name: MONGODB_COLLECTION_NAME
-              value: "persons"
+              value: "personse"
           resources:
             requests:
               memory: "256Mi"
