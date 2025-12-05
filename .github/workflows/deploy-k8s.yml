@@ -1,0 +1,70 @@
+on:
+  workflow_call:
+    secrets:
+      DOCKERHUB_USERNAME:
+        required: true
+      DEPLOY_APPLI_NAME:
+        required: true
+
+jobs:
+  deploy-k8s:
+    name: ☸️ Deploy K8s
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Update Kubernetes manifest with new image tag
+        run: |
+          IMAGE_TAG="${{ github.sha }}"
+          DOCKERHUB_USERNAME="${{ secrets.DOCKERHUB_USERNAME }}"
+          DEPLOY_APPLI_NAME="${{ secrets.DEPLOY_APPLI_NAME }}"
+          NEW_IMAGE="${DOCKERHUB_USERNAME}/${DEPLOY_APPLI_NAME}:${IMAGE_TAG}"
+
+          echo "📦 Updating image to: ${NEW_IMAGE}"
+          echo "📄 File: k8s/appli/appli.yaml"
+
+          # Show current image
+          echo "Current image:"
+          grep "image:" k8s/appli/appli.yaml | head -1
+
+          # Update using sed with better regex
+          sed -i.bak "s|image: ${DOCKERHUB_USERNAME}/${DEPLOY_APPLI_NAME}:.*|image: ${NEW_IMAGE}|g" k8s/appli/appli.yaml
+
+          # Remove backup file
+          rm -f k8s/appli/appli.yaml.bak
+
+          # Show new image
+          echo "New image:"
+          grep "image:" k8s/appli/appli.yaml | head -1
+
+          # Show the diff
+          git diff k8s/appli/appli.yaml
+
+      - name: Commit and push updated manifest
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          git add k8s/appli/appli.yaml
+
+          if git diff --staged --quiet; then
+            echo "No changes to commit"
+          else
+            git commit -m "chore: update k8s image to ${{ github.sha }}" \
+              -m "" \
+              -m "🤖 Generated with Claude Code" \
+              -m "" \
+              -m "Co-Authored-By: Claude <noreply@anthropic.com>"
+            git push
+          fi
+
+      - name: Deployment summary
+        run: |
+          echo "✅ Kubernetes manifest updated successfully!"
+          echo "📦 New image: ${{ secrets.DOCKERHUB_USERNAME }}/${{ secrets.DEPLOY_APPLI_NAME }}:${{ github.sha }}"
+          echo "📄 Updated file: k8s/appli/appli.yaml"
+          echo ""
+          echo "🔄 ArgoCD will automatically sync the changes"

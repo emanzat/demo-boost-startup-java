@@ -32,65 +32,55 @@ Dans GitHub : **Settings → Secrets → Actions**, ajoutez :
 Créez `.github/workflows/publish-docker-hub.yml` :
 
 ```yaml
-name: Publish to Docker Hub
-
 on:
   workflow_call:
-
-env:
-  DOCKER_IMAGE_NAME: demo-boost-startup-java
-  DEPLOY_APPLI_NAME: demo-boost-startup-java
+    secrets:
+      DOCKERHUB_USERNAME:
+        required: true
+      DOCKERHUB_TOKEN:
+        required: true
 
 jobs:
   publish-docker-hub:
-    name: Publish to Docker Hub
+    name: 📤 Publish
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main'  # ⚠️ Seulement sur main
-
     steps:
-      - name: 📥 Checkout code
+      - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: 📥 Download Docker image
-        uses: actions/download-artifact@v4
-        with:
-          name: docker-image
-          path: /tmp
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
 
-      - name: 🐳 Load Docker image
-        run: docker load -i /tmp/docker-image.tar
-
-      - name: 🔐 Login to Docker Hub
+      - name: Login to Docker Hub
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: 🏷️ Tag Docker image
-        run: |
-          docker tag ${{ env.DOCKER_IMAGE_NAME }}:latest \
-            ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.DEPLOY_APPLI_NAME }}:latest
-          docker tag ${{ env.DOCKER_IMAGE_NAME }}:latest \
-            ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.DEPLOY_APPLI_NAME }}:${{ github.sha }}
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./Dockerfile
+          push: true
+          tags: |
+            ${{ secrets.DOCKERHUB_USERNAME }}/${{ secrets.DEPLOY_APPLI_NAME }}:latest
+            ${{ secrets.DOCKERHUB_USERNAME }}/${{ secrets.DEPLOY_APPLI_NAME }}:${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
 
-      - name: 📤 Push to Docker Hub
-        run: |
-          docker push ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.DEPLOY_APPLI_NAME }}:latest
-          docker push ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.DEPLOY_APPLI_NAME }}:${{ github.sha }}
-
-      - name: 📋 Generate SBOM
+      - name: Generate SBOM
         uses: anchore/sbom-action@v0
         with:
-          image: ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.DEPLOY_APPLI_NAME }}:latest
+          image: ${{ secrets.DOCKERHUB_USERNAME }}/${{ secrets.DEPLOY_APPLI_NAME }}:latest
           format: spdx-json
           output-file: sbom.spdx.json
 
-      - name: 📤 Upload SBOM
+      - name: Upload SBOM
         uses: actions/upload-artifact@v4
         with:
           name: sbom
           path: sbom.spdx.json
-          retention-days: 90
 ```
 
 ### Étape 9.3 : Ajouter au pipeline principal
@@ -98,21 +88,17 @@ jobs:
 Modifiez `main-pipeline.yml` :
 
 ```yaml
-  dast-dynamic-security-testing:
-    needs: build-and-scan-docker
-    if: github.event_name != 'pull_request'
-    uses: ./.github/workflows/dast-dynamic-security-testing.yml
+  build-and-scan-docker:
+    uses: ./.github/workflows/build-docker-image.yml
+    secrets: inherit
 
   # ═══════════════════════════════════════════════
-  # ÉTAPE 8 : PUBLICATION (main uniquement)
+  # ÉTAPE 8 : PUBLICATION
   # ═══════════════════════════════════════════════
   publish-docker-hub:
-    needs:
-      - build-and-scan-docker
-      - dast-dynamic-security-testing
-    if: github.ref == 'refs/heads/main'
+    needs: [build-and-scan-docker]
     uses: ./.github/workflows/publish-docker-hub.yml
-    secrets: inherit  # ⚠️ Important : partage les secrets
+    secrets: inherit
 ```
 
 ### Étape 9.4 : Tester
@@ -129,12 +115,13 @@ Vérifiez sur Docker Hub que l'image est bien publiée !
 
 ## ✅ Critères de Validation
 
-- [ ] L'image est publiée sur Docker Hub
+- [ ] L'image est **build + push** directement vers Docker Hub
 - [ ] Deux tags sont créés : `latest` et le SHA du commit
 - [ ] Le SBOM est généré au format SPDX-JSON
-- [ ] Le SBOM est uploadé comme artefact (90 jours)
-- [ ] **Ne s'exécute que** sur la branche `main`
+- [ ] Le SBOM est uploadé comme artefact
+- [ ] Les secrets `DOCKERHUB_USERNAME`, `DOCKERHUB_TOKEN`, et `DEPLOY_APPLI_NAME` sont déclarés
 - [ ] Les secrets sont partagés avec `secrets: inherit`
+- [ ] Utilise Docker Buildx avec cache GitHub Actions
 - [ ] L'image est visible sur https://hub.docker.com/r/USERNAME/demo-boost-startup-java
 
 ---
@@ -180,16 +167,21 @@ Vérifiez sur Docker Hub que l'image est bien publiée !
    Exemple : Log4Shell (2021) → avec un SBOM, vous savez immédiatement si vous êtes affecté.
    </details>
 
-3. **Pourquoi `if: github.ref == 'refs/heads/main'` ?**
+3. **Pourquoi rebuild l'image au lieu de télécharger l'artifact ?**
    <details>
    <summary>Voir la réponse</summary>
 
-   - On ne veut publier que les versions validées (main)
-   - Évite de polluer Docker Hub avec des images de test
-   - Les branches de feature ne doivent pas être publiées
-   - Économise de l'espace et des ressources
+   **Avantages du rebuild direct :**
+   - **Pas de stockage d'artifact** : Économise de l'espace GitHub (Docker images sont lourdes)
+   - **Plus simple** : Pas besoin de save/load/tag
+   - **Cache GitHub Actions** : `cache-from/cache-to` accélère considérablement le build
+   - **Toujours frais** : L'image est construite au moment de la publication
 
-   **Alternative :** Publier sur une registry privée pour les branches de feature.
+   **Inconvénient :** Rebuild prend ~2-3 minutes (mais avec cache, c'est rapide)
+
+   **Alternative (si vous préférez l'artifact) :**
+   - Download artifact → Load image → Tag → Push
+   - Utile si le build est très long (>10 min)
    </details>
 
 4. **Pourquoi deux tags : `latest` et `<sha>` ?**
@@ -215,12 +207,11 @@ Vérifiez sur Docker Hub que l'image est bien publiée !
 ## 🎯 Architecture Actuelle
 
 ```
-[...] → build-and-scan-docker
-            └── dast-dynamic-security-testing
-                    └── publish-docker-hub (main only)
+build-and-scan-docker
+    └── publish-docker-hub
 ```
 
-Publication conditionnelle : seulement sur `main` après tous les tests de sécurité.
+L'image est rebuild et publiée directement après avoir été validée par Trivy.
 
 ---
 

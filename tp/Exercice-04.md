@@ -41,7 +41,7 @@ jobs:
         uses: gitleaks/gitleaks-action@v2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          GITLEAKS_LICENSE: ${{ secrets.GITLEAKS_LICENSE }}
+          GITLEAKS_ENABLE_SUMMARY: true
 ```
 
 ### Étape 4.2 : Ajouter au pipeline principal
@@ -261,6 +261,27 @@ Vérifiez dans l'onglet **Actions** de GitHub :
    - Clés privées SSH/PGP
    - Credentials de base de données
    - Plus de 100 patterns prédéfinis
+   </details>
+
+3bis. **Quelle est la différence entre `GITHUB_TOKEN` et `GITLEAKS_ENABLE_SUMMARY` ?**
+   <details>
+   <summary>Voir la réponse</summary>
+
+   **`GITHUB_TOKEN`** :
+   - Token d'authentification automatique fourni par GitHub Actions
+   - Permet à Gitleaks d'accéder au repo et de poster des commentaires
+   - Disponible automatiquement dans tous les workflows
+   - Pas besoin de le configurer manuellement
+
+   **`GITLEAKS_ENABLE_SUMMARY`** :
+   - Active l'affichage d'un résumé dans les logs GitHub Actions
+   - Améliore la lisibilité des résultats de scan
+   - Valeur: `true` pour activer
+
+   **Note sur `GITLEAKS_LICENSE`** :
+   - Variable obsolète (n'existe plus dans Gitleaks v2+)
+   - Gitleaks est maintenant open-source sans licence commerciale requise
+   - NE PAS utiliser dans les nouveaux workflows
    </details>
 
 4. **Que faire si un secret est détecté ?**

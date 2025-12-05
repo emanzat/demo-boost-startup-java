@@ -18,7 +18,7 @@ Identifier les vulnérabilités dans les dépendances Maven (bibliothèques tier
 
 ### Étape 5.1 : Créer le fichier de suppressions
 
-Créez `.github/dependency-check-suppressions.xml` :
+Créez `.owasp-suppressions.xml` à la racine du projet :
 
 ```xml
 <?xml version="1.0" encoding="UTF-8"?>
@@ -66,25 +66,32 @@ jobs:
 
       - name: 📦 Run OWASP Dependency Check
         run: |
-          mvn org.owasp:dependency-check-maven:11.1.1:check \
+          mvn org.owasp:dependency-check-maven:check \
             -DfailBuildOnCVSS=7 \
-            -DsuppressionFile=.github/dependency-check-suppressions.xml \
-            -Dformats=HTML,SARIF
+            -DsuppressionFiles=.owasp-suppressions.xml
 
       - name: 📤 Upload Dependency Check SARIF
         uses: github/codeql-action/upload-sarif@v4
         if: always() && hashFiles('target/dependency-check-report.sarif') != ''
         with:
           sarif_file: target/dependency-check-report.sarif
-          category: dependency-check
+          category: owasp-dependency-check
 
-      - name: 📤 Upload Dependency Check Report
-        uses: actions/upload-artifact@v4
-        if: always()
+      - name: 🔍 Run Trivy SCA (filesystem scan)
+        uses: aquasecurity/trivy-action@0.27.0
         with:
-          name: dependency-check-report
-          path: target/dependency-check-report.html
-          retention-days: 30
+          scan-type: 'fs'
+          format: 'json'
+          output: 'trivy-deps-report.json'
+          severity: 'CRITICAL,HIGH,MEDIUM'
+          ignore-unfixed: true
+
+      - name: 📤 Upload Trivy SCA report
+        uses: actions/upload-artifact@v4
+        with:
+          name: trivy-deps-report
+          path: trivy-deps-report.json
+          retention-days: 7
 ```
 
 ### Étape 5.3 : Ajouter au pipeline principal
@@ -116,9 +123,10 @@ git push origin main
 
 ## ✅ Critères de Validation
 
-- [ ] Le scan des dépendances s'exécute
-- [ ] Le rapport HTML et SARIF sont générés
-- [ ] Le rapport HTML est disponible dans les Artifacts
+- [ ] Le scan OWASP Dependency-Check s'exécute
+- [ ] Le scan Trivy SCA (filesystem) s'exécute
+- [ ] Le rapport SARIF OWASP est uploadé vers GitHub Security
+- [ ] Le rapport JSON Trivy est disponible dans les Artifacts
 - [ ] Les résultats apparaissent dans Security → Code scanning
 - [ ] Le build échoue si CVSS >= 7
 - [ ] S'exécute en parallèle avec SAST et Secret Scanning
@@ -156,7 +164,7 @@ git push origin main
    <details>
    <summary>Voir la réponse</summary>
 
-   1. Identifier la dépendance dans le rapport HTML
+   1. Identifier la dépendance dans le rapport SARIF ou JSON
    2. Dans `pom.xml`, mettre à jour la version :
       ```xml
       <dependency>
@@ -167,7 +175,7 @@ git push origin main
       ```
    3. Tester localement : `mvn clean test`
    4. Commit et push
-   5. Si pas de version corrigée : supprimer fichier de suppressions (temporaire)
+   5. Si pas de version corrigée : ajouter suppression dans `.owasp-suppressions.xml` (temporaire)
    </details>
 
 4. **Qu'est-ce que la base de données NVD ?**
@@ -179,6 +187,17 @@ git push origin main
    - Contient toutes les CVE (Common Vulnerabilities and Exposures)
    - Mise à jour quotidiennement
    - OWASP Dependency-Check l'utilise pour détecter les vulnérabilités
+   </details>
+
+5. **Pourquoi utiliser deux outils SCA (OWASP + Trivy) ?**
+   <details>
+   <summary>Voir la réponse</summary>
+
+   - **Couverture complémentaire** : Chaque outil a sa propre base de vulnérabilités
+   - **OWASP Dependency-Check** : Spécialisé pour Maven/Java, NVD database
+   - **Trivy** : Base de données plus large, détection plus rapide
+   - **Redondance** : Réduit les faux négatifs (vulnérabilités manquées)
+   - **Formats différents** : SARIF pour OWASP, JSON pour Trivy
    </details>
 
 ---

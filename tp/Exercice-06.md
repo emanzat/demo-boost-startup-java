@@ -40,20 +40,20 @@ jobs:
         uses: actions/checkout@v4
 
       - name: 🏗️ Run Checkov
-        uses: bridgecrewio/checkov-action@master
+        uses: bridgecrewio/checkov-action@v12
         with:
           directory: .
           framework: dockerfile
           output_format: sarif
-          soft_fail: false
           output_file_path: checkov-report.sarif
+          soft_fail: true
 
       - name: 📤 Upload Checkov SARIF
         uses: github/codeql-action/upload-sarif@v4
-        if: always() && hashFiles('checkov-report.sarif') != ''
+        if: always()
         with:
-          sarif_file: checkov-report.sarif
-          category: checkov
+          sarif_file: checkov-report.sarif/results_sarif.sarif
+          category: checkov-iac
 ```
 
 ### Étape 6.2 : Ajouter au pipeline principal
@@ -122,8 +122,10 @@ git push origin main
 
 - [ ] Checkov analyse le Dockerfile
 - [ ] Les violations de sécurité sont détectées (si présentes)
+- [ ] Les résultats SARIF sont uploadés (dans `checkov-report.sarif/results_sarif.sarif`)
 - [ ] Les résultats apparaissent dans Security → Code scanning
 - [ ] S'exécute en parallèle avec les autres scans
+- [ ] Le workflow ne bloque pas (`soft_fail: true`)
 - [ ] L'utilisateur non-root est vérifié
 - [ ] Le HEALTHCHECK est validé (si présent)
 
@@ -174,7 +176,18 @@ git push origin main
    - Et bien plus...
    </details>
 
-4. **Qu'est-ce que l'IaC (Infrastructure as Code) ?**
+4. **Pourquoi `soft_fail: true` ?**
+   <details>
+   <summary>Voir la réponse</summary>
+
+   - **`soft_fail: true`** : Le workflow continue même si Checkov trouve des violations
+   - Les résultats sont quand même uploadés vers GitHub Security
+   - Permet de voir les problèmes sans bloquer le pipeline
+   - Utile en phase d'adoption progressive de la sécurité
+   - En production stricte, on pourrait mettre `soft_fail: false` pour bloquer
+   </details>
+
+5. **Qu'est-ce que l'IaC (Infrastructure as Code) ?**
    <details>
    <summary>Voir la réponse</summary>
 

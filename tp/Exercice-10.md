@@ -36,77 +36,54 @@ Dans GitHub : **Settings → Secrets → Actions**, ajoutez :
 Créez `.github/workflows/deploy-production-server.yml` :
 
 ```yaml
-name: Deploy to Production Server
-
 on:
   workflow_call:
-
-env:
-  DEPLOY_APPLI_NAME: demo-boost-startup-java
+    secrets:
+      DEPLOY_SERVER:
+        required: true
+      DEPLOY_SSH_USER:
+        required: true
+      DEPLOY_SSH_PRIVATE_KEY:
+        required: true
+      DEPLOY_SSH_PORT:
+        required: false
+      DOCKERHUB_USERNAME:
+        required: true
+      DEPLOY_APPLI_PORT:
+        required: true
+      DEPLOY_APPLI_NAME:
+        required: true
+      MONGODB_COLLECTION_NAME:
+        required: false
 
 jobs:
   deploy-production-server:
-    name: Deploy to Production
+    name: 🚀 Deploy
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main'
-
     steps:
-      - name: 📥 Checkout code
-        uses: actions/checkout@v4
-
-      - name: 🔐 Configure SSH
-        run: |
-          mkdir -p ~/.ssh
-          echo "${{ secrets.DEPLOY_SSH_PRIVATE_KEY }}" > ~/.ssh/deploy_key
-          chmod 600 ~/.ssh/deploy_key
-          ssh-keyscan -p ${{ secrets.DEPLOY_SSH_PORT || 22 }} \
-            ${{ secrets.DEPLOY_SERVER }} >> ~/.ssh/known_hosts
-
-      - name: 🚀 Deploy to server
-        run: |
-          ssh -i ~/.ssh/deploy_key \
-            -p ${{ secrets.DEPLOY_SSH_PORT || 22 }} \
-            ${{ secrets.DEPLOY_SSH_USER }}@${{ secrets.DEPLOY_SERVER }} << 'ENDSSH'
-
-            echo "📥 Pulling latest Docker image..."
-            docker pull ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.DEPLOY_APPLI_NAME }}:latest
-
-            echo "🛑 Stopping old container..."
-            docker stop ${{ secrets.DEPLOY_APPLI_NAME }} 2>/dev/null || true
-            docker rm ${{ secrets.DEPLOY_APPLI_NAME }} 2>/dev/null || true
-
-            echo "🚀 Starting new container..."
-            docker run -d \
-              --name ${{ secrets.DEPLOY_APPLI_NAME }} \
-              --restart unless-stopped \
+      - name: Deploy to server via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.DEPLOY_SERVER }}
+          username: ${{ secrets.DEPLOY_SSH_USER }}
+          key: ${{ secrets.DEPLOY_SSH_PRIVATE_KEY }}
+          port: ${{ secrets.DEPLOY_SSH_PORT || 22 }}
+          script: |
+            docker pull ${{ secrets.DOCKERHUB_USERNAME }}/${{ secrets.DEPLOY_APPLI_NAME }}:latest
+            docker stop ${{ secrets.DEPLOY_APPLI_NAME }} || true
+            docker rm ${{ secrets.DEPLOY_APPLI_NAME }} || true
+            docker run -d --name ${{ secrets.DEPLOY_APPLI_NAME }} \
               -p ${{ secrets.DEPLOY_APPLI_PORT }}:8080 \
-              -e SPRING_PROFILES_ACTIVE=production \
-              ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.DEPLOY_APPLI_NAME }}:latest
+              -e MONGODB_COLLECTION_NAME=${{ secrets.MONGODB_COLLECTION_NAME || 'persons' }} \
+              --network app-network \
+              ${{ secrets.DOCKERHUB_USERNAME }}/${{ secrets.DEPLOY_APPLI_NAME }}:latest
+            sleep 10
+            curl -f http://localhost:8080/actuator/health || exit 1
+            docker image prune -af --filter "until=24h"
 
-            echo "⏳ Waiting for application health check..."
-            for i in {1..30}; do
-              if curl -f http://localhost:${{ secrets.DEPLOY_APPLI_PORT }}/actuator/health > /dev/null 2>&1; then
-                echo "✅ Application is healthy!"
-                exit 0
-              fi
-              echo "Attempt $i/30..."
-              sleep 2
-            done
-
-            echo "❌ Health check failed!"
-            exit 1
-          ENDSSH
-
-      - name: 🧹 Cleanup old images
+      - name: Verify deployment
         run: |
-          ssh -i ~/.ssh/deploy_key \
-            -p ${{ secrets.DEPLOY_SSH_PORT || 22 }} \
-            ${{ secrets.DEPLOY_SSH_USER }}@${{ secrets.DEPLOY_SERVER }} \
-            "docker image prune -af --filter 'until=24h'"
-
-      - name: 🧹 Cleanup SSH key
-        if: always()
-        run: rm -f ~/.ssh/deploy_key
+          curl -f http://${{ secrets.DEPLOY_SERVER }}:8080/actuator/health
 ```
 
 ### Étape 10.3 : Ajouter au pipeline principal
@@ -114,21 +91,18 @@ jobs:
 Modifiez `main-pipeline.yml` :
 
 ```yaml
-  publish-docker-hub:
-    needs:
-      - build-and-scan-docker
-      - dast-dynamic-security-testing
-    if: github.ref == 'refs/heads/main'
-    uses: ./.github/workflows/publish-docker-hub.yml
+  dast-dynamic-security-testing:
+    needs: publish-docker-hub
+    uses: ./.github/workflows/dast-zap-test.yml
     secrets: inherit
 
   # ═══════════════════════════════════════════════
   # ÉTAPE 9 : DÉPLOIEMENT EN PRODUCTION
   # ═══════════════════════════════════════════════
   deploy-production-server:
-    needs: publish-docker-hub
+    needs: dast-dynamic-security-testing
     uses: ./.github/workflows/deploy-production-server.yml
-    secrets: inherit  # ⚠️ Important
+    secrets: inherit
 ```
 
 ### Étape 10.4 : Tester
@@ -145,61 +119,80 @@ Vérifiez que l'application est accessible sur votre serveur !
 
 ## ✅ Critères de Validation
 
-- [ ] La connexion SSH fonctionne
+- [ ] Utilise `appleboy/ssh-action@v1.0.3` pour le déploiement SSH
 - [ ] L'image Docker est pull depuis Docker Hub
-- [ ] L'ancien conteneur est arrêté et supprimé
-- [ ] Le nouveau conteneur démarre
-- [ ] Le health check réussit (30 tentatives max)
-- [ ] Les anciennes images sont nettoyées
-- [ ] La clé SSH est supprimée (`if: always()`)
+- [ ] L'ancien conteneur est arrêté et supprimé (avec `|| true`)
+- [ ] Le nouveau conteneur démarre avec `--network app-network`
+- [ ] La variable `MONGODB_COLLECTION_NAME` est passée (défaut: `persons`)
+- [ ] Le health check réussit après 10 secondes
+- [ ] Les anciennes images sont nettoyées (< 24h)
+- [ ] Vérification externe du deployment depuis GitHub Actions
 - [ ] L'application est accessible : `http://SERVER_IP:8080/actuator/health`
 
 ---
 
 ## 🤔 Questions de Compréhension
 
-1. **Pourquoi utiliser un heredoc (`<< 'ENDSSH'`) ?**
+1. **Pourquoi utiliser `appleboy/ssh-action` au lieu de SSH manuel ?**
    <details>
    <summary>Voir la réponse</summary>
 
-   Le heredoc permet d'exécuter plusieurs commandes SSH en une seule connexion :
+   **Avantages de `appleboy/ssh-action` :**
+   - **Plus simple** : Pas besoin de gérer manuellement les clés SSH
+   - **Sécurisé** : Gestion automatique des permissions (chmod 600)
+   - **Pas de cleanup** : Pas de clé SSH résiduelle à nettoyer
+   - **Meilleure gestion des erreurs** : Sortie claire et structurée
+   - **Script multiline** : Paramètre `script` facile à lire
+   - **SSH keyscan automatique** : Évite les prompts d'acceptation du host
 
-   **Sans heredoc** (3 connexions SSH) :
+   **Comparaison :**
+   ```yaml
+   # Approche manuelle (complexe)
+   - run: |
+       mkdir -p ~/.ssh
+       echo "$KEY" > ~/.ssh/key
+       chmod 600 ~/.ssh/key
+       ssh-keyscan ... >> ~/.ssh/known_hosts
+       ssh -i ~/.ssh/key user@server "commands"
+       rm -f ~/.ssh/key
+
+   # Avec appleboy (simple)
+   - uses: appleboy/ssh-action@v1.0.3
+     with:
+       host: ${{ secrets.DEPLOY_SERVER }}
+       username: ${{ secrets.DEPLOY_SSH_USER }}
+       key: ${{ secrets.DEPLOY_SSH_PRIVATE_KEY }}
+       script: commands
+   ```
+   </details>
+
+2. **Pourquoi `--network app-network` ?**
+   <details>
+   <summary>Voir la réponse</summary>
+
+   Le conteneur Spring Boot doit communiquer avec MongoDB :
+
+   **Sans network Docker :**
    ```bash
-   ssh user@server "docker pull image"
-   ssh user@server "docker stop app"
-   ssh user@server "docker run ..."
+   # Impossible de résoudre "mongodb" comme hostname
+   docker run -e MONGODB_URI=mongodb://mongodb:27017/demo app
+   # ❌ UnknownHostException: mongodb
    ```
 
-   **Avec heredoc** (1 seule connexion) :
+   **Avec network Docker :**
    ```bash
-   ssh user@server << 'EOF'
-     docker pull image
-     docker stop app
-     docker run ...
-   EOF
+   # Le réseau Docker permet la résolution DNS interne
+   docker network create app-network
+   docker run --name mongodb --network app-network mongo:7
+   docker run --name app --network app-network \
+     -e MONGODB_URI=mongodb://mongodb:27017/demo app
+   # ✅ La connexion fonctionne!
    ```
 
    **Avantages :**
-   - Plus rapide (1 connexion vs 3)
-   - Transactions : tout réussit ou tout échoue
-   - Moins de surcharge réseau
-   </details>
-
-2. **Que fait `--restart unless-stopped` ?**
-   <details>
-   <summary>Voir la réponse</summary>
-
-   Politiques de redémarrage Docker :
-   - `no` : Jamais redémarrer
-   - `always` : Toujours redémarrer (même après reboot du serveur)
-   - `on-failure` : Redémarrer seulement si exit code != 0
-   - `unless-stopped` : Redémarrer sauf si manuellement arrêté
-
-   **`unless-stopped`** est le meilleur choix pour la production :
-   - Redémarre automatiquement si crash
-   - Redémarre après reboot du serveur
-   - Mais respecte les arrêts manuels (maintenance)
+   - Résolution DNS automatique entre conteneurs
+   - Communication sécurisée (réseau interne)
+   - Isolation du trafic réseau
    </details>
 
 3. **Comment faire un rollback en cas de problème ?**
@@ -255,7 +248,46 @@ Vérifiez que l'application est accessible sur votre serveur !
    - ✅ Échoue le déploiement si l'app ne démarre pas
    - ✅ Détecte les problèmes de configuration
 
+   **Notre approche en deux étapes :**
+   1. `sleep 10` + health check sur le serveur (via SSH)
+   2. Vérification externe depuis GitHub Actions
+
    Le health check est notre **dernière ligne de défense** !
+   </details>
+
+5. **Pourquoi déclarer explicitement tous les secrets dans `workflow_call` ?**
+   <details>
+   <summary>Voir la réponse</summary>
+
+   **Avec déclaration explicite (notre approche) :**
+   ```yaml
+   on:
+     workflow_call:
+       secrets:
+         DEPLOY_SERVER:
+           required: true
+         DEPLOY_SSH_USER:
+           required: true
+         # ... etc
+   ```
+
+   **Avantages :**
+   - ✅ Documentation claire : On sait exactement quels secrets sont nécessaires
+   - ✅ Validation automatique : GitHub vérifie que tous les secrets requis sont présents
+   - ✅ Sécurité : Principe du moindre privilège (seuls les secrets déclarés sont accessibles)
+   - ✅ Maintenabilité : Si un secret est manquant, erreur explicite avant exécution
+
+   **Alternative avec `secrets: inherit` seulement :**
+   ```yaml
+   on:
+     workflow_call:
+   # Pas de déclaration - tous les secrets sont hérités
+   ```
+   - ❌ Moins clair : On ne sait pas quels secrets sont nécessaires
+   - ❌ Pas de validation : Erreur seulement à l'exécution
+   - ❌ Moins sécurisé : Tous les secrets du repo sont accessibles
+
+   **Best practice :** Toujours déclarer explicitement les secrets nécessaires !
    </details>
 
 ---
@@ -263,51 +295,56 @@ Vérifiez que l'application est accessible sur votre serveur !
 ## 🎯 Architecture Finale
 
 ```
-[...] → publish-docker-hub
-            └── deploy-production-server (main only)
+publish-docker-hub
+    └── dast-dynamic-security-testing
+            └── deploy-production-server
 ```
 
-Le déploiement est la dernière étape, après que tout soit validé et publié.
+Le déploiement est la dernière étape, après que tout soit validé, publié et testé dynamiquement.
 
 ---
 
 ## 💡 Points Importants
 
-### Sécurité SSH
+### Utilisation de `appleboy/ssh-action`
 
 ```yaml
-- name: 🔐 Configure SSH
-  run: |
-    mkdir -p ~/.ssh
-    echo "${{ secrets.DEPLOY_SSH_PRIVATE_KEY }}" > ~/.ssh/deploy_key
-    chmod 600 ~/.ssh/deploy_key  # ⚠️ OBLIGATOIRE
-    ssh-keyscan ... >> ~/.ssh/known_hosts
+- uses: appleboy/ssh-action@v1.0.3
+  with:
+    host: ${{ secrets.DEPLOY_SERVER }}
+    username: ${{ secrets.DEPLOY_SSH_USER }}
+    key: ${{ secrets.DEPLOY_SSH_PRIVATE_KEY }}
+    port: ${{ secrets.DEPLOY_SSH_PORT || 22 }}
+    script: |
+      # Commandes à exécuter sur le serveur distant
 ```
 
-**Important :**
-- `chmod 600` : SSH refuse les clés trop permissives
-- `ssh-keyscan` : Évite les prompts d'acceptation du host
-- Nettoyage avec `if: always()` : Sécurité
+**Avantages :**
+- Gestion automatique de la sécurité SSH (chmod 600, keyscan)
+- Pas de cleanup manuel nécessaire
+- Script multiline clair et lisible
 
-### Déploiement Zero-Downtime
+### Réseau Docker
 
-Notre déploiement a un **petit downtime** (stop → start).
+```bash
+--network app-network
+```
 
-Pour un déploiement zero-downtime :
-1. Blue-Green Deployment (2 instances)
-2. Rolling Update (Kubernetes)
-3. Health check + load balancer
+Le conteneur Spring Boot et MongoDB communiquent via un réseau Docker :
+- Résolution DNS interne (`mongodb` → adresse IP du conteneur)
+- Isolation réseau
+- Communication sécurisée
 
 ### Variables d'Environnement
 
 ```bash
--e SPRING_PROFILES_ACTIVE=production
+-e MONGODB_COLLECTION_NAME=${{ secrets.MONGODB_COLLECTION_NAME || 'persons' }}
 ```
 
-Permet de charger `application-production.properties` avec :
-- Configuration de la base de données de prod
-- Logging adapté
-- Sécurité renforcée
+Configuration de l'application :
+- Collection MongoDB dynamique
+- Valeur par défaut : `persons`
+- Permet différentes configurations par environnement
 
 ---
 

@@ -22,76 +22,23 @@ Modifiez `main-pipeline.yml`, ajoutez à la fin :
 
 ```yaml
   deploy-production-server:
-    needs: publish-docker-hub
+    needs: dast-dynamic-security-testing
     uses: ./.github/workflows/deploy-production-server.yml
     secrets: inherit
 
-  # ═══════════════════════════════════════════════
-  # NOTIFICATIONS
-  # ═══════════════════════════════════════════════
   send-notifications:
-    name: Send Notifications
-    needs:
-      - build-and-test
-      - code-quality-sast
-      - secret-scanning
-      - sca-dependency-scan
-      - secure-iac-dockerfile-scan
-      - build-and-scan-docker
-      - deploy-production-server
+    needs: deploy-production-server
     runs-on: ubuntu-latest
-    if: always()  # ⚠️ Toujours exécuter, même si échec
-
+    if: always()
     steps:
-      - name: 📊 Check pipeline status
+      - name: Deployment status
         run: |
-          echo "═══════════════════════════════════════"
-          echo "📊 PIPELINE STATUS REPORT"
-          echo "═══════════════════════════════════════"
-          echo "Build & Test: ${{ needs.build-and-test.result }}"
-          echo "SAST: ${{ needs.code-quality-sast.result }}"
-          echo "Secret Scanning: ${{ needs.secret-scanning.result }}"
-          echo "SCA: ${{ needs.sca-dependency-scan.result }}"
-          echo "IaC Security: ${{ needs.secure-iac-dockerfile-scan.result }}"
-          echo "Docker Build: ${{ needs.build-and-scan-docker.result }}"
-          echo "Deployment: ${{ needs.deploy-production-server.result }}"
-          echo "═══════════════════════════════════════"
-
-      - name: ✅ Deployment successful
-        if: needs.deploy-production-server.result == 'success'
-        run: |
-          echo "✅ Deployment to production successful!"
-          echo "🎉 Application is live!"
-          echo ""
-          echo "📊 Pipeline Summary:"
-          echo "  • All security scans passed"
-          echo "  • Docker image built and published"
-          echo "  • Application deployed and healthy"
-
-      - name: ❌ Deployment failed
-        if: needs.deploy-production-server.result == 'failure'
-        run: |
-          echo "❌ Deployment to production failed!"
-          echo "🚨 Please check the logs and rollback if necessary."
-          echo ""
-          echo "🔍 Troubleshooting steps:"
-          echo "  1. Check deployment logs above"
-          echo "  2. Verify server connectivity"
-          echo "  3. Check application health endpoint"
-          echo "  4. Consider manual rollback"
-          exit 1
-
-      - name: ⚠️ Pipeline skipped
-        if: needs.deploy-production-server.result == 'skipped'
-        run: |
-          echo "⚠️ Deployment was skipped (not on main branch)"
-          echo "✅ Security scans and tests completed successfully!"
-          echo ""
-          echo "📊 Branch Summary:"
-          echo "  • Code quality checks passed"
-          echo "  • Security scans completed"
-          echo "  • Docker image built and tested"
-          echo "  • Ready for merge to main"
+          if [ "${{ needs.deploy-production-server.result }}" == "success" ]; then
+            echo "✅ Deployment successful!"
+          else
+            echo "❌ Deployment failed!"
+            exit 1
+          fi
 ```
 
 ### Étape 11.2 : Tester
@@ -109,10 +56,11 @@ Observez le job `send-notifications` dans l'onglet Actions.
 ## ✅ Critères de Validation
 
 - [ ] Le job s'exécute **toujours** (`if: always()`)
-- [ ] Le statut de **tous** les jobs est affiché
-- [ ] Message différent selon le résultat (success/failure/skipped)
-- [ ] Le job dépend de tous les autres (`needs:`)
-- [ ] S'exécute même si un job précédent a échoué
+- [ ] Le statut du déploiement est vérifié (`needs.deploy-production-server.result`)
+- [ ] Message de succès (`✅ Deployment successful!`) si tout va bien
+- [ ] Message d'échec (`❌ Deployment failed!`) avec `exit 1` en cas d'erreur
+- [ ] Le job dépend de `deploy-production-server`
+- [ ] S'exécute même si le déploiement a échoué
 
 ---
 
@@ -157,24 +105,34 @@ Observez le job `send-notifications` dans l'onglet Actions.
    ```
    </details>
 
-3. **Pourquoi lister tous les jobs dans `needs:` ?**
+3. **Pourquoi ne vérifier que le déploiement et pas tous les jobs ?**
    <details>
    <summary>Voir la réponse</summary>
 
-   Pour avoir accès au résultat de chaque job via `needs.<job>.result`.
+   **Approche simple (utilisée ici) :**
+   ```yaml
+   needs: deploy-production-server
+   ```
+   - Vérifie seulement le résultat du déploiement
+   - Plus simple et direct
+   - Si le déploiement a réussi, c'est que tous les jobs précédents ont réussi
 
-   **Si on omettait un job :**
+   **Approche avancée (optionnelle) :**
    ```yaml
    needs:
      - build-and-test
+     - code-quality-sast
+     - secret-scanning
+     - sca-dependency-scan
+     - secure-iac-dockerfile-scan
+     - build-and-scan-docker
      - deploy-production-server
    ```
-   On ne pourrait pas afficher le statut de SAST, SCA, etc.
+   - Rapport complet de tous les jobs
+   - Permet d'afficher le statut de chaque étape
+   - Plus verbeux mais plus détaillé
 
-   **Avec tous les jobs :**
-   - Rapport complet du pipeline
-   - Visibilité totale
-   - Diagnostic facile
+   **Choix de conception :** L'approche simple est suffisante pour la plupart des cas.
    </details>
 
 ---
@@ -202,9 +160,45 @@ main-pipeline.yml (Orchestrateur)
 
 ---
 
-## 💡 Bonus : Notifications Slack (Optionnel)
+## 💡 Bonus : Notifications Avancées (Optionnel)
 
-Pour envoyer des notifications Slack, ajoutez ce step :
+### Option 1 : Rapport complet de tous les jobs
+
+Pour afficher le statut de chaque job individuellement, utilisez cette version avancée :
+
+```yaml
+send-notifications:
+  name: Send Notifications
+  needs:
+    - build-and-test
+    - code-quality-sast
+    - secret-scanning
+    - sca-dependency-scan
+    - secure-iac-dockerfile-scan
+    - build-and-scan-docker
+    - deploy-production-server
+  runs-on: ubuntu-latest
+  if: always()
+
+  steps:
+    - name: 📊 Check pipeline status
+      run: |
+        echo "═══════════════════════════════════════"
+        echo "📊 PIPELINE STATUS REPORT"
+        echo "═══════════════════════════════════════"
+        echo "Build & Test: ${{ needs.build-and-test.result }}"
+        echo "SAST: ${{ needs.code-quality-sast.result }}"
+        echo "Secret Scanning: ${{ needs.secret-scanning.result }}"
+        echo "SCA: ${{ needs.sca-dependency-scan.result }}"
+        echo "IaC Security: ${{ needs.secure-iac-dockerfile-scan.result }}"
+        echo "Docker Build: ${{ needs.build-and-scan-docker.result }}"
+        echo "Deployment: ${{ needs.deploy-production-server.result }}"
+        echo "═══════════════════════════════════════"
+```
+
+### Option 2 : Notifications Slack
+
+Pour envoyer des notifications Slack :
 
 ```yaml
 - name: 📢 Send Slack notification
